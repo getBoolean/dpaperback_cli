@@ -11,7 +11,7 @@ environment:
 dependencies:
   args: ^2.3.1
   dart_pb_extensions_common:
-    path: ../dart_pb_extensions_common
+    git: https://github.com/getBoolean/dart_pb_extensions_common
 
 dev_dependencies:
   lints: ^2.0.0
