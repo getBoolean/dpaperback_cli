@@ -16,7 +16,7 @@ packages:
     source: hosted
     version: "5.3.1"
   args:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: args
       url: "https://pub.dartlang.org"
@@ -64,6 +64,20 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "3.0.2"
+  csslib:
+    dependency: transitive
+    description:
+      name: csslib
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.17.2"
+  dart_pb_extensions_common:
+    dependency: "direct main"
+    description:
+      path: "../dart_pb_extensions_common"
+      relative: true
+    source: path
+    version: "1.0.0"
   file:
     dependency: transitive
     description:
@@ -85,6 +99,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.1.1"
+  html:
+    dependency: transitive
+    description:
+      name: html
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.15.1"
   http_multi_server:
     dependency: transitive
     description:
