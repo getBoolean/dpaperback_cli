@@ -1,4 +1,4 @@
-name: dart_pb_cli
+name: dpaperback_cli
 description: A commandline tool for bundling and serving Dart Paperback extensions using dart_pb_extensions_common
 version: 1.0.0
 homepage: https://github.com/getBoolean/dart_pb_cli

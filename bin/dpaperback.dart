@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:dart_pb_cli/dart_pb_cli.dart';
+import 'package:dpaperback_cli/dpaperback_cli.dart';
 
 void main(List<String> arguments) {
   exitCode = 0; // presume success

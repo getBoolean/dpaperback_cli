@@ -16,7 +16,7 @@ Once added to PATH, the `dpaperback` command can be used.
 dart pub global activate https://github.com/getBoolean/dart_pb_cli
 
 # Or alternatively to specify a specific version (once published):
-# pub global activate dart_pb_cli 0.4.1
+# pub global activate dpaperback_cli 0.4.1
 ```
 
 Alternatively, it can be added as a dev dependency to your `pubspec.yaml` file. Use the command `dart run :dpaperback` to use the CLI. (Note the `:` before the `dpaperback`)
