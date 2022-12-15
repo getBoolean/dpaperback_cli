@@ -93,15 +93,20 @@ void main(List<String> arguments) {
 
   if (shouldShowHelp) {
     printCommandUsage(
-      command: command,
+      command: command.name ?? '<command>',
       verbose: verbose,
-      usage: command.name == 'bundle'
-          ? bundleParser.usage
-          : command.name == 'serve'
-              ? serveParser.usage
-              : command.name == 'clean'
-                  ? cleanParser.usage
-                  : baseParser.usage,
+      usage: () {
+        switch (command.name) {
+          case 'bundle':
+            return bundleParser.usage;
+          case 'serve':
+            return serveParser.usage;
+          case 'clean':
+            return cleanParser.usage;
+          default:
+            return baseParser.usage;
+        }
+      }(),
     );
     exit(0);
   }

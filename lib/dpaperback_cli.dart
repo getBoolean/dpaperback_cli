@@ -15,8 +15,8 @@ void printUsage({bool verbose = false, required String usage}) {
   print(green('   clean           Deletes the modules directory and the versioning file'));
 }
 
-void printCommandUsage({required ArgResults command, bool verbose = false, required String usage}) {
-  print(green('\nUsage: dpaperback ${command.name} [arguments]'));
+void printCommandUsage({required String command, bool verbose = false, required String usage}) {
+  print(green('\nUsage: dpaperback $command [arguments]'));
   print(green('\nOptions:'));
   print(green(usage));
 }
