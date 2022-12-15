@@ -5,111 +5,38 @@ import 'package:dpaperback_cli/dpaperback_cli.dart';
 
 void main(List<String> arguments) {
   exitCode = 0; // presume success
-  final bundleParser = ArgParser()
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      defaultsTo: false,
-      negatable: false,
-      help: 'Enable verbose logging.',
-    );
-  final serveParser = ArgParser()
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      defaultsTo: false,
-      negatable: false,
-      help: 'Enable verbose logging.',
-    );
-  final cleanParser = ArgParser()
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      defaultsTo: false,
-      negatable: false,
-      help: 'Enable verbose logging.',
-    );
-  final baseParser = ArgParser(allowTrailingOptions: false)
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      defaultsTo: false,
-      negatable: false,
-      help: 'Enable verbose logging.',
-    )
-    ..addCommand('bundle', bundleParser)
-    ..addCommand('serve', serveParser)
-    ..addCommand('clean', cleanParser);
 
-  final ArgResults results = baseParser.parse(arguments);
+  final cli = DartPaperbackCli();
+  final ArgResults results = cli.baseParser.parse(arguments);
 
-  final verbose = results['verbose'] as bool;
+  cli.verbose = results['verbose'] as bool;
   final help = results['help'] as bool;
 
   final command = results.command;
   if (help && command == null) {
-    printUsage(
-      usage: baseParser.usage,
-      verbose: verbose,
-    );
+    cli.printUsage();
     exit(0);
+  }
+
+  if (results.rest.isNotEmpty) {
+    print(red('\nInvalid command: "${results.rest.join(' ')}"'));
+    cli.printUsage();
+    exit(1);
   }
 
   if (command == null) {
     print(red('\nYou must pass the name of the command to use.'));
-    printUsage(
-      usage: baseParser.usage,
-      verbose: verbose,
-    );
+    cli.printUsage();
     exit(1);
   }
 
-  final enableVerboseLogging = verbose || command['verbose'] as bool;
-  final shouldShowHelp = help || command['help'] as bool;
+  cli.verbose = cli.verbose || (command['verbose'] is bool ? command['verbose'] as bool : false);
 
+  final shouldShowHelp = help || (command['help'] is bool ? command['help'] as bool : false);
   if (shouldShowHelp) {
-    printCommandUsage(
-      command: command.name ?? '<command>',
-      verbose: verbose,
-      usage: () {
-        switch (command.name) {
-          case 'bundle':
-            return bundleParser.usage;
-          case 'serve':
-            return serveParser.usage;
-          case 'clean':
-            return cleanParser.usage;
-          default:
-            return baseParser.usage;
-        }
-      }(),
-    );
+    cli.printCommandUsage(command.name ?? '<command>');
     exit(0);
   }
 
-  dpaperback(command, verbose: enableVerboseLogging);
+  cli.dpaperback(command);
 }
