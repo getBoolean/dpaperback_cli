@@ -8,6 +8,9 @@ publish_to: none
 environment:
   sdk: ">=2.18.5 <3.0.0"
 
+executables:
+  dpaperback:
+
 dependencies:
   args: ^2.3.1
   dart_pb_extensions_common:
