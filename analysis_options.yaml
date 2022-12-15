@@ -1,30 +1,47 @@
-# This file configures the static analysis results for your project (errors,
-# warnings, and lints).
-#
-# This enables the 'recommended' set of lints from `package:lints`.
-# This set helps identify many issues that may lead to problems when running
-# or consuming Dart code, and enforces writing Dart using a single, idiomatic
-# style and format.
-#
-# If you want a smaller set of lints you can change this to specify
-# 'package:lints/core.yaml'. These are just the most critical lints
-# (the recommended set includes the core lints).
-# The core lints are also what is used by pub.dev for scoring packages.
-
 include: package:lints/recommended.yaml
 
-# Uncomment the following section to specify additional rules.
+linter:
+  rules:
+    # Single quotes are easier to type and don't compromise on readability.
+    prefer_single_quotes: true
 
-# linter:
-#   rules:
-#     - camel_case_types
+    # Type annotations are sometimes necessary for readability
+    omit_local_variable_types: false
 
-# analyzer:
-#   exclude:
-#     - path/to/excluded/files/**
+    # Better to declare variables as final
+    prefer_final_locals: true
 
-# For more information about the core and recommended set of lints, see
-# https://dart.dev/go/core-lints
+    # Better to leave it up to the programmer
+    prefer_int_literals: false
 
-# For additional information about configuring this file, see
-# https://dart.dev/guides/language/analysis-options
+    # It is better to group related packages
+    sort_pub_dependencies: false
+
+    directives_ordering: true
+
+    unawaited_futures: true
+
+    prefer_relative_imports: false
+    always_use_package_imports: true
+
+    # Some enums might need to have specific letter casing when converted to String
+    constant_identifier_names: false
+
+    unnecessary_lambdas: true
+
+    unnecessary_constructor_name: true
+
+    # Documentation
+    package_api_docs: true
+    # public_member_api_docs: true
+    slash_for_doc_comments: true
+
+analyzer:
+  errors:
+    todo: ignore
+  exclude:
+    - "lib/generated_plugin_registrant.dart"
+    - "**/*.g.dart"
+    - "**/*.freezed.dart"
+    - "**/i18n.dart"
+    - "lib/generated/intl/messages*.dart"

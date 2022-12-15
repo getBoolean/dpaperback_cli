@@ -1,16 +1,13 @@
-import 'package:dart_pb_cli/dart_pb_cli.dart';
-
 import 'dart:io';
 
 import 'package:args/args.dart';
-
-const lineNumber = 'line-number';
+import 'package:dart_pb_cli/dart_pb_cli.dart';
 
 void main(List<String> arguments) {
   exitCode = 0; // presume success
-  final parser = ArgParser()..addFlag(lineNumber, negatable: false, abbr: 'n');
+  final parser = ArgParser();
 
-  ArgResults argResults = parser.parse(arguments);
+  final ArgResults argResults = parser.parse(arguments);
 
   dpaperback();
 }
