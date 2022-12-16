@@ -8,6 +8,14 @@ class Bundle extends Command {
 
   void bundleSources() {}
 
+  void run() {
+    final executionTimer = time();
+    bundleSources();
+    createVersioningFile();
+    generateHomepage();
+    stopTimer(executionTimer, prefix: 'Execution time');
+  }
+
   void createVersioningFile() {
     final verionTimer = time();
     stopTimer(verionTimer, prefix: 'Versioning File');

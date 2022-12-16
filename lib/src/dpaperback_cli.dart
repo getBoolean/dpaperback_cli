@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/bundle.dart';
+import 'package:dpaperback_cli/src/commands/server.dart';
 import 'package:path/path.dart' as path;
 
 class DartPaperbackCli {
@@ -19,13 +20,17 @@ class DartPaperbackCli {
     ..addSeparator('Flags:')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
     ..addFlag('verbose',
-        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.');
+        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.')
+    ..addOption('output', abbr: 'o', help: 'The output directory.', defaultsTo: 'modules')
+    ..addOption('target', abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib')
+    ..addOption('port', abbr: 'p', help: 'The port to serve on.', defaultsTo: '27015');
 
   final cleanParser = ArgParser()
     ..addSeparator('Flags:')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
     ..addFlag('verbose',
-        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.');
+        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.')
+    ..addOption('target', abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib');
 
   late final baseParser = ArgParser(allowTrailingOptions: false)
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
@@ -85,29 +90,20 @@ class DartPaperbackCli {
 
     final output = parseOutputPath(command);
     final target = parseTargetPath(command);
-    final bundler = Bundle(output, target);
-
-    // Start timer
-    final executionTimer = bundler.time();
-
-    bundler.bundleSources();
-    bundler.createVersioningFile();
-    bundler.generateHomepage();
-
-    bundler.stopTimer(executionTimer, prefix: 'Execution time');
+    return Bundle(output, target).run();
   }
 
   void serve(ArgResults command) {
-    print(blue('Serving sources...'));
-
+    print(blue('Building Sources\n'));
     final output = parseOutputPath(command);
     final target = parseTargetPath(command);
+    final port = command['port'];
+    Server(output, target, port).run();
   }
 
   void clean(ArgResults command) {
     print(blue('Cleaning...'));
 
-    final output = parseOutputPath(command);
     final target = parseTargetPath(command);
   }
 
