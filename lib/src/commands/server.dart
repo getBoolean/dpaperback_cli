@@ -5,7 +5,7 @@ import 'package:dpaperback_cli/src/commands/command.dart';
 class Server extends Command {
   final String output;
   final String target;
-  final String port;
+  final int port;
 
   Server(this.output, this.target, this.port);
 

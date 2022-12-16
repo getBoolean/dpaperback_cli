@@ -98,7 +98,14 @@ class DartPaperbackCli {
     final output = parseOutputPath(command);
     final target = parseTargetPath(command);
     final port = command['port'];
-    Server(output, target, port).run();
+
+    final parsedPort = int.tryParse(port);
+    if (parsedPort == null || parsedPort < 1 || parsedPort > 65535) {
+      print(red('The port "$port" is not a valid port number. It must be between 1 and 65535.'));
+      exit(2);
+    }
+
+    Server(output, target, parsedPort).run();
   }
 
   void clean(ArgResults command) {
