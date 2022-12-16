@@ -4,64 +4,24 @@ class DartPaperbackCli {
   bool verbose = false;
 
   final bundleParser = ArgParser()
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      defaultsTo: false,
-      negatable: false,
-      help: 'Enable verbose logging.',
-    );
+    ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
+    ..addFlag('verbose',
+        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.');
 
   final serveParser = ArgParser()
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      defaultsTo: false,
-      negatable: false,
-      help: 'Enable verbose logging.',
-    );
+    ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
+    ..addFlag('verbose',
+        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.');
 
   final cleanParser = ArgParser()
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      defaultsTo: false,
-      negatable: false,
-      help: 'Enable verbose logging.',
-    );
+    ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
+    ..addFlag('verbose',
+        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.');
 
   late final baseParser = ArgParser(allowTrailingOptions: false)
-    ..addFlag(
-      'help',
-      abbr: 'h',
-      negatable: false,
-      help: 'Print this usage information.',
-    )
-    ..addFlag(
-      'verbose',
-      abbr: 'v',
-      defaultsTo: false,
-      negatable: false,
-      help: 'Enable verbose logging.',
-    )
+    ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
+    ..addFlag('verbose',
+        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.')
     ..addCommand('bundle', bundleParser)
     ..addCommand('serve', serveParser)
     ..addCommand('clean', cleanParser);
