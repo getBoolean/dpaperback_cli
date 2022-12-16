@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/bundle.dart';
 import 'package:dpaperback_cli/src/commands/server.dart';
-import 'package:path/path.dart' as path;
+
+const kDefaultPaperbackExtensionsCommon = 'paperback-extensions-common@^5.0.0-alpha.7';
 
 class DartPaperbackCli {
   bool verbose = false;
@@ -17,7 +18,14 @@ class DartPaperbackCli {
         abbr: 'o', help: 'The output directory.', defaultsTo: 'modules', valueHelp: 'folder')
     ..addOption('target',
         abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
-    ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name');
+    ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
+    ..addOption(
+      'paperback-extensions-common',
+      abbr: 'p',
+      help: 'The Paperback Extensions Common Package and Version',
+      valueHelp: ':package@:version',
+      defaultsTo: kDefaultPaperbackExtensionsCommon,
+    );
 
   final serveParser = ArgParser()
     ..addSeparator('Flags:')
@@ -28,6 +36,13 @@ class DartPaperbackCli {
         abbr: 'o', help: 'The output directory.', defaultsTo: 'modules', valueHelp: 'folder')
     ..addOption('target',
         abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
+    ..addOption(
+      'paperback-extensions-common',
+      abbr: 'p',
+      help: 'The Paperback Extensions Common Package and Version',
+      valueHelp: ':package@:version',
+      defaultsTo: kDefaultPaperbackExtensionsCommon,
+    )
     ..addOption('ip', valueHelp: 'value')
     ..addOption('port', abbr: 'p', defaultsTo: '27015', valueHelp: 'value');
 
@@ -97,13 +112,15 @@ class DartPaperbackCli {
     final output = parseOutputPath(command);
     final target = parseTargetPath(command);
     final source = command['source'] as String?;
-    return Bundle(output, target, source).run();
+    final commonsPackage = command['paperback-extensions-common'] as String;
+    return Bundle(output, target, source: source, commonsPackage: commonsPackage).run();
   }
 
   void serve(ArgResults command) {
     print(blue('Building Sources\n'));
     final output = parseOutputPath(command);
     final target = parseTargetPath(command);
+    final commonsPackage = command['paperback-extensions-common'] as String;
     final port = command['port'];
 
     final parsedPort = int.tryParse(port);
@@ -112,7 +129,7 @@ class DartPaperbackCli {
       exit(2);
     }
 
-    Server(output, target, parsedPort).run();
+    Server(output, target, parsedPort, commonsPackage).run();
   }
 
   void clean(ArgResults command) {
@@ -123,7 +140,7 @@ class DartPaperbackCli {
 
   String parseTargetPath(ArgResults command) {
     final targetArgument = command['target'] as String;
-    final targetPath = path.canonicalize(targetArgument);
+    final targetPath = canonicalize(targetArgument);
     if (!exists(targetPath)) {
       print(red('The target directory "$targetArgument" could not be found'));
       exit(2);
@@ -134,7 +151,7 @@ class DartPaperbackCli {
 
   String parseOutputPath(ArgResults command) {
     final outputArgument = command['output'] as String;
-    final outputPath = path.canonicalize(outputArgument);
+    final outputPath = canonicalize(outputArgument);
 
     return createDir(outputPath, recursive: true);
   }

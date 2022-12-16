@@ -12,6 +12,7 @@ executables:
   dpaperback:
 
 dependencies:
+  archive: ^3.3.5
   dart_pb_extensions_common:
     git: https://github.com/getBoolean/dart_pb_extensions_common
   dcli: ^1.36.0
