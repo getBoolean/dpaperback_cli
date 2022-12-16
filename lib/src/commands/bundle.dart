@@ -84,7 +84,9 @@ class Bundle extends Command {
     _bundleCommons(commonsTempDir, output: minifiedLib);
     deleteDir(commonsTempDir, recursive: true);
 
-    final sources = find('*', workingDirectory: target, types: [Find.directory]).toList();
+    final sources = source != null
+        ? [join(target, source)]
+        : find('*', workingDirectory: target, types: [Find.directory], recursive: false).toList();
     for (final targetSource in sources) {
       final sourceFile = '${basename(targetSource)}.dart';
       final sourcePath = join(targetSource, sourceFile);
