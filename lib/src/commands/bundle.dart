@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/command.dart';
 
-const kMinifiedLibrary = 'sources.min.js';
+const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
 
 class Bundle extends Command {
@@ -24,8 +24,14 @@ class Bundle extends Command {
 
   void bundleSources() {
     final tempBuildPath = join(output, 'temp_build');
-    deleteDir(tempBuildPath, recursive: true);
-    createDir(tempBuildPath, recursive: true);
+    // delete all files in temp_build except kMinifiedLibrary
+    find('*', workingDirectory: tempBuildPath, recursive: false).forEach((file) {
+      if (isFile(file) && file != kMinifiedLibrary) {
+        delete(file);
+      } else if (isDirectory(file)) {
+        deleteDir(file, recursive: true);
+      }
+    });
 
     _compileSources(tempBuildPath);
 
@@ -67,22 +73,10 @@ class Bundle extends Command {
     final compileTimer = time();
 
     // Download paperback-extensions-common from npmjs.org
-    final commonsTempDir = createTempDir();
-    final commonSuccessCode = installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
-    if (commonSuccessCode != 0) {
-      deleteDir(commonsTempDir, recursive: true);
-      exit(commonSuccessCode);
-    }
-    final browserifySuccessCode =
-        installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
-    if (browserifySuccessCode != 0) {
-      deleteDir(commonsTempDir, recursive: true);
-      exit(browserifySuccessCode);
-    }
     final minifiedLib = join(tempBuildPath, kMinifiedLibrary);
-    createDir(dirname(minifiedLib), recursive: true);
-    _bundleCommons(commonsTempDir, output: minifiedLib);
-    deleteDir(commonsTempDir, recursive: true);
+    if (!exists(minifiedLib)) {
+      _bundleJsDependencies(minifiedLib);
+    }
 
     final sources = source != null
         ? [join(target, source)]
@@ -126,6 +120,24 @@ class Bundle extends Command {
     }
 
     stopTimer(compileTimer, prefix: 'Compiling project');
+  }
+
+  void _bundleJsDependencies(String outputFile) {
+    final commonsTempDir = createTempDir();
+    final commonSuccessCode = installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
+    if (commonSuccessCode != 0) {
+      deleteDir(commonsTempDir, recursive: true);
+      exit(commonSuccessCode);
+    }
+    final browserifySuccessCode =
+        installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
+    if (browserifySuccessCode != 0) {
+      deleteDir(commonsTempDir, recursive: true);
+      exit(browserifySuccessCode);
+    }
+    createDir(dirname(outputFile), recursive: true);
+    _bundleCommons(commonsTempDir, output: outputFile);
+    deleteDir(commonsTempDir, recursive: true);
   }
 
   int _bundleCommons(String tempDir, {required String output}) {
