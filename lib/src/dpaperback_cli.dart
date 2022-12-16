@@ -136,6 +136,8 @@ class DartPaperbackCli {
     print(blue('Cleaning...'));
 
     final target = parseTargetPath(command);
+    deleteDir(join(target, 'modules'));
+    deleteDir(join(target, 'temp_build'));
   }
 
   String parseTargetPath(ArgResults command) {
