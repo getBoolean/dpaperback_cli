@@ -13,17 +13,23 @@ class DartPaperbackCli {
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
     ..addFlag('verbose',
         abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.')
-    ..addOption('output', abbr: 'o', help: 'The output directory.', defaultsTo: 'modules')
-    ..addOption('target', abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib');
+    ..addOption('output',
+        abbr: 'o', help: 'The output directory.', defaultsTo: 'modules', valueHelp: 'folder')
+    ..addOption('target',
+        abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
+    ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name');
 
   final serveParser = ArgParser()
     ..addSeparator('Flags:')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
     ..addFlag('verbose',
         abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.')
-    ..addOption('output', abbr: 'o', help: 'The output directory.', defaultsTo: 'modules')
-    ..addOption('target', abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib')
-    ..addOption('port', abbr: 'p', help: 'The port to serve on.', defaultsTo: '27015');
+    ..addOption('output',
+        abbr: 'o', help: 'The output directory.', defaultsTo: 'modules', valueHelp: 'folder')
+    ..addOption('target',
+        abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
+    ..addOption('ip', valueHelp: 'value')
+    ..addOption('port', abbr: 'p', defaultsTo: '27015', valueHelp: 'value');
 
   final cleanParser = ArgParser()
     ..addSeparator('Flags:')
@@ -90,7 +96,8 @@ class DartPaperbackCli {
 
     final output = parseOutputPath(command);
     final target = parseTargetPath(command);
-    return Bundle(output, target).run();
+    final source = command['source'] as String?;
+    return Bundle(output, target, source).run();
   }
 
   void serve(ArgResults command) {
@@ -128,9 +135,6 @@ class DartPaperbackCli {
   String parseOutputPath(ArgResults command) {
     final outputArgument = command['output'] as String;
     final outputPath = path.canonicalize(outputArgument);
-    if (exists(outputPath)) {
-      deleteDir(outputPath, recursive: true);
-    }
 
     return createDir(outputPath, recursive: true);
   }
