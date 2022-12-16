@@ -1,19 +1,28 @@
+import 'dart:io';
+
 import 'package:dcli/dcli.dart';
+import 'package:dpaperback_cli/src/commands/bundle.dart';
+import 'package:path/path.dart' as path;
 
 class DartPaperbackCli {
   bool verbose = false;
 
   final bundleParser = ArgParser()
+    ..addSeparator('Flags:')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
     ..addFlag('verbose',
-        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.');
+        abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.')
+    ..addOption('output', abbr: 'o', help: 'The output directory.', defaultsTo: 'modules')
+    ..addOption('target', abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib');
 
   final serveParser = ArgParser()
+    ..addSeparator('Flags:')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
     ..addFlag('verbose',
         abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.');
 
   final cleanParser = ArgParser()
+    ..addSeparator('Flags:')
     ..addFlag('help', abbr: 'h', negatable: false, help: 'Print this usage information.')
     ..addFlag('verbose',
         abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.');
@@ -28,9 +37,9 @@ class DartPaperbackCli {
 
   void printUsage() {
     print(green('\nUsage: dpaperback <command> [arguments]'));
-    print(green('\nGlobal options:'));
+    print(green('\nFlags:'));
     print(green(baseParser.usage));
-    print(green('\nAvailable commands:'));
+    print(green('\nCommands:'));
     print(green(
         '   bundle          Builds all the sources in the repository and generates a versioning file'));
     print(green('   serve           Build the sources and start a local server'));
@@ -51,22 +60,75 @@ class DartPaperbackCli {
   }
 
   void printCommandUsage(String command) {
-    print(green('\nUsage: dpaperback $command [arguments]'));
-    print(green('\nOptions:'));
+    print(green('\nUsage: dpaperback $command [arguments]\n'));
     print(green(commandUsage(command)));
   }
 
   void dpaperback(ArgResults command) {
+    print('Working directory: $pwd\n');
+
     switch (command.name) {
       case 'bundle':
-        print(blue('Bundling the sources...'));
+        bundle(command);
         break;
       case 'serve':
-        print(blue('Serving the sources...'));
+        serve(command);
         break;
       case 'clean':
-        print(blue('Cleaning...'));
+        clean(command);
         break;
     }
+  }
+
+  void bundle(ArgResults command) {
+    print(blue('Building Sources\n'));
+
+    final output = parseOutputPath(command);
+    final target = parseTargetPath(command);
+    final bundler = Bundle(output, target);
+
+    // Start timer
+    final executionTimer = bundler.time();
+
+    bundler.bundleSources();
+    bundler.createVersioningFile();
+    bundler.generateHomepage();
+
+    bundler.stopTimer(executionTimer, prefix: 'Execution time');
+  }
+
+  void serve(ArgResults command) {
+    print(blue('Serving sources...'));
+
+    final output = parseOutputPath(command);
+    final target = parseTargetPath(command);
+  }
+
+  void clean(ArgResults command) {
+    print(blue('Cleaning...'));
+
+    final output = parseOutputPath(command);
+    final target = parseTargetPath(command);
+  }
+
+  String parseTargetPath(ArgResults command) {
+    final targetArgument = command['target'] as String;
+    final targetPath = path.canonicalize(targetArgument);
+    if (!exists(targetPath)) {
+      print(red('The target directory "$targetArgument" could not be found'));
+      exit(2);
+    }
+
+    return targetPath;
+  }
+
+  String parseOutputPath(ArgResults command) {
+    final outputArgument = command['output'] as String;
+    final outputPath = path.canonicalize(outputArgument);
+    if (exists(outputPath)) {
+      deleteDir(outputPath, recursive: true);
+    }
+
+    return createDir(outputPath, recursive: true);
   }
 }
