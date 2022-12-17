@@ -218,13 +218,15 @@ class BundleCli with CommandTime {
   }
 
   Future<void> _compileSources(String tempBuildPath) async {
-    final compileTime = time(prefix: 'Compiling project: ');
-
     // Download paperback-extensions-common from npmjs.org
     final minifiedLib = join(tempBuildPath, kMinifiedLibrary);
     if (!await File(minifiedLib).exists()) {
+      final timer = time(prefix: 'Downloading dependencies: ');
       await _bundleJsDependencies(minifiedLib);
+      stopTimer(timer);
     }
+
+    final compileTime = time(prefix: 'Compiling project: ');
 
     // TODO: Make async
     final sources = source != null
