@@ -183,7 +183,7 @@ class BundleCli with CommandTime {
 
     final baseBundlesPath = join(output, 'bundles');
     final bundlesPath = join(baseBundlesPath, source);
-    if (await File(bundlesPath).exists()) {
+    if (await Directory(bundlesPath).exists()) {
       await Directory(bundlesPath).delete(recursive: true);
     }
     await Directory(bundlesPath).create(recursive: true);
@@ -265,9 +265,10 @@ class BundleCli with CommandTime {
 
       // copy includes folder
       final includesPath = join(targetSource, 'includes');
-      if (await File(includesPath).exists()) {
+      print(green(includesPath, bold: true));
+      if (await Directory(includesPath).exists()) {
         final includesDestPath = join(tempSourceFolder, 'includes');
-        if (!await File(includesDestPath).exists()) {
+        if (!await Directory(includesDestPath).exists()) {
           await Directory(includesDestPath).create(recursive: true);
         }
 
