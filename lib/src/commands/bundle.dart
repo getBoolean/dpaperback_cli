@@ -46,7 +46,6 @@ class Bundle extends Command {
         final sourceInfo = generateSourceInfo(browser, source, bundlesPath);
         final sourceId = sourceInfo['id'];
         Directory(dir).renameSync(join(dirname(dir), sourceId));
-        sourceInfo.remove('id');
         (versioningFileMap['sources']! as List).add(sourceInfo);
         stopTimer(timer, prefix: '- Generating $sourceId Info');
       } on FileNotFoundException {
