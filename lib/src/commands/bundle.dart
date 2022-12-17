@@ -219,7 +219,7 @@ class BundleCli with CommandTime {
   }
 
   Future<void> _compileSources(String tempBuildPath) async {
-    stdout.write('Compiling project: ');
+    stdout.write(blue('Compiling project: '));
     final compileTime = TimeDisplay()..start();
 
     // Download paperback-extensions-common from npmjs.org
