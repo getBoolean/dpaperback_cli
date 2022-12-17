@@ -1,9 +1,9 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
-import 'package:dpaperback_cli/src/custom_time_display.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
 import 'package:puppeteer/puppeteer.dart';
@@ -106,7 +106,9 @@ class BundleCli with CommandTime {
       'sources': [],
     };
 
+    final puppeteerTimer = time(prefix: 'Launching puppeteer: ');
     final browser = await ppt.puppeteer.launch();
+    stopTimer(puppeteerTimer);
     final bundlesPath = join(output, 'bundles');
     // TODO: Make async FileSystemEntity.isDirectorySync
     final directories = await Directory(bundlesPath)
@@ -137,10 +139,10 @@ class BundleCli with CommandTime {
         continue;
       }
     }
-    await browser.close();
     final versioningFileContents = jsonEncode(versioningFileMap);
     await File(join(bundlesPath, 'versioning.json')).writeAsString(versioningFileContents);
     print((blue('Versioning File: ${verionTimer.elapsedMilliseconds}ms', bold: true)));
+    unawaited(browser.close());
   }
 
   Future<Map<String, dynamic>> generateSourceInfo(
@@ -179,7 +181,6 @@ class BundleCli with CommandTime {
 
     await _compileSources(tempBuildPath);
 
-    final buildTimer = time(prefix: 'Bundle time');
     final baseBundlesPath = join(output, 'bundles');
     final bundlesPath = join(baseBundlesPath, source);
     if (await File(bundlesPath).exists()) {
@@ -193,7 +194,6 @@ class BundleCli with CommandTime {
     // TODO: Make async
     copyTree(directoryPath, targetDirPath, overwrite: true);
 
-    stopTimer(buildTimer);
     await Directory(tempBuildPath).delete(recursive: true);
   }
 
@@ -218,8 +218,7 @@ class BundleCli with CommandTime {
   }
 
   Future<void> _compileSources(String tempBuildPath) async {
-    stdout.write(blue('Compiling project: '));
-    final compileTime = MillisecondTimeDisplay()..start();
+    final compileTime = time(prefix: 'Compiling project: ');
 
     // Download paperback-extensions-common from npmjs.org
     final minifiedLib = join(tempBuildPath, kMinifiedLibrary);
@@ -275,8 +274,7 @@ class BundleCli with CommandTime {
       }
     }
 
-    compileTime.stop();
-    stdout.writeln();
+    stopTimer(compileTime);
   }
 
   Future<void> _bundleJsDependencies(String outputFile) async {
