@@ -1,8 +1,10 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/command.dart';
+import 'package:dpaperback_cli/src/dpaperback_cli.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
 import 'package:puppeteer/puppeteer.dart';
 
@@ -10,20 +12,89 @@ const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
 const kCliPrefix = '\$SourceId\$';
 
-class Bundle extends Command {
+class Bundle extends Command<int> with CommandTime {
+  late String output;
+  late String target;
+  late String? source;
+  late String commonsPackage;
+
+  Bundle() {
+    argParser
+      ..addSeparator('Flags:')
+      ..addOption('output',
+          abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
+      ..addOption('target',
+          abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
+      ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
+      ..addOption(
+        'paperback-extensions-common',
+        abbr: 'c',
+        help: 'The Paperback Extensions Common Package and Version',
+        valueHelp: ':package@:version',
+        defaultsTo: kDefaultPaperbackExtensionsCommon,
+      );
+  }
+
+  @override
+  String get description =>
+      'Builds all the sources in the repository and generates a versioning file';
+
+  @override
+  String get name => 'bundle';
+
+  @override
+  List<String> get aliases => [];
+
+  @override
+  Future<int> run() async {
+    final results = argResults;
+    if (results == null) return 1;
+
+    output = parseOutputPath(results);
+    target = parseTargetPath(results);
+    source = results['source'] as String?;
+    commonsPackage = results['paperback-extensions-common'] as String;
+
+    return BundleCli(output, target, source: source, commonsPackage: commonsPackage).run();
+  }
+
+  String parseTargetPath(ArgResults command) {
+    final targetArgument = command['target'] as String;
+    final targetPath = canonicalize(targetArgument);
+    if (!exists(targetPath)) {
+      print(red('The target directory "$targetArgument" could not be found'));
+      exit(2);
+    }
+
+    return targetPath;
+  }
+
+  String parseOutputPath(ArgResults command) {
+    final outputArgument = command['output'] as String;
+    final outputPath = canonicalize(outputArgument);
+
+    if (!exists(outputPath)) {
+      createDir(outputPath, recursive: true);
+    }
+    return outputPath;
+  }
+}
+
+class BundleCli with CommandTime {
   final String output;
   final String target;
   final String? source;
   final String commonsPackage;
 
-  Bundle(this.output, this.target, {this.source, required this.commonsPackage});
+  BundleCli(this.output, this.target, {required this.source, required this.commonsPackage});
 
-  void run() {
+  int run() {
     final executionTimer = time();
     bundleSources();
     createVersioningFile();
     generateHomepage();
     stopTimer(executionTimer, prefix: 'Execution time');
+    return 0;
   }
 
   void createVersioningFile() {

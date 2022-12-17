@@ -1,6 +1,6 @@
 import 'package:dcli/dcli.dart';
 
-abstract class Command {
+mixin CommandTime {
   Stopwatch time() {
     final Stopwatch timer = Stopwatch();
     timer.start();

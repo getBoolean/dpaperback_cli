@@ -13,6 +13,8 @@ executables:
 
 dependencies:
   archive: ^3.3.5
+  args: ^2.3.1
+  cli_completion: ^0.1.0+1
   dart_pb_extensions_common:
     git: https://github.com/getBoolean/dart_pb_extensions_common
   dcli: ^1.36.0

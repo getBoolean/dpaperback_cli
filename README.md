@@ -44,7 +44,6 @@ Usage: dpaperback <command> [arguments]
 
 Global options:
 -h, --help        Print this usage information.
-    --verbose     Enable verbose logging.
 
 Available commands:
   bundle          Builds all the sources in the repository and generates a versioning file
