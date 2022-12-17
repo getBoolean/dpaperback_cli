@@ -11,7 +11,7 @@ const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
 const kCliPrefix = '\$SourceId\$';
 
-class Bundle extends Command<int> with CommandTime {
+class Bundle extends Command<int> {
   late String output;
   late String target;
   late String? source;

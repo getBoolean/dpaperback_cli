@@ -4,7 +4,7 @@ import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
 
-class Clean extends Command<int> with CommandTime {
+class Clean extends Command<int> {
   Clean() {
     argParser
       ..addSeparator('Flags:')
