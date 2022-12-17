@@ -16,6 +16,7 @@ dependencies:
   dart_pb_extensions_common:
     git: https://github.com/getBoolean/dart_pb_extensions_common
   dcli: ^1.36.0
+  puppeteer: ^2.19.0
 
 dev_dependencies:
   lints: ^2.0.0

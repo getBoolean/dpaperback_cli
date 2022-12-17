@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/command.dart';
+import 'package:puppeteer/puppeteer.dart' as ppt;
 
 const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
@@ -22,9 +23,70 @@ class Bundle extends Command {
     stopTimer(executionTimer, prefix: 'Execution time');
   }
 
+  void createVersioningFile() {
+    final verionTimer = time();
+
+    final versioningFile = {
+      'buildTime': DateTime.now(),
+      'sources': [],
+    };
+
+    final directoryPath = join(output, 'bundles');
+    // for each folder in bundles
+    final dirs =
+        find('*', workingDirectory: directoryPath, types: [Find.directory], recursive: false)
+            .toList();
+    for (final dir in dirs) {
+      final source = basename(dir);
+      final timer = time();
+      try {
+        final sourceInfo = generateSourceInfo(source, directoryPath);
+        (versioningFile['sources']! as List).add(sourceInfo);
+        stopTimer(timer, prefix: '- Generating $dir Info');
+      } on FileNotFoundException {
+        printerr(yellow('Skipping "$source", source.js not found'));
+        continue;
+      } on DCliException catch (e) {
+        printerr(red('Skipping "$source", ${e.message}${e.cause != null ? ' - ${e.cause}' : ''}'));
+        continue;
+      } on FileSystemException catch (e) {
+        printerr(red('Skipping "$source", could not read source.js into memory: ${e.message}'));
+        continue;
+      } on Exception catch (e) {
+        printerr(red('Skipping "$source", ${e.toString()}'));
+        continue;
+      }
+    }
+
+    stopTimer(verionTimer, prefix: 'Versioning File');
+  }
+
+  Map<String, dynamic> generateSourceInfo(String source, String directoryPath) {
+    final sourceJs = join(directoryPath, source, 'source.js');
+    // TODO: Rename source folder to id from source.js
+    final sourceContents = exists(sourceJs) ? File(sourceJs).readAsStringSync() : null;
+    if (sourceContents == null) {
+      throw FileNotFoundException(sourceJs);
+    }
+
+    final browser = waitForEx(ppt.puppeteer.launch());
+    final page = waitForEx(browser.newPage());
+
+    waitForEx(page.evaluate(sourceContents));
+    final String sourceId = waitForEx(page.evaluate('SourceId'));
+    final dynamic sourceInfo = waitForEx(page.evaluate(sourceId));
+    print(green('SOURCE ID: $sourceId', bold: true));
+    print(green('SOURCE INFO: $sourceInfo', bold: true));
+
+    waitForEx(browser.close());
+
+    return sourceInfo;
+  }
+
   void bundleSources() {
     final tempBuildPath = join(output, 'temp_build');
     // delete all files in temp_build except kMinifiedLibrary
+    createDir(tempBuildPath);
     find('*', workingDirectory: tempBuildPath, recursive: false).forEach((file) {
       if (isFile(file) && file != kMinifiedLibrary) {
         delete(file);
@@ -47,11 +109,6 @@ class Bundle extends Command {
 
     stopTimer(buildTimer, prefix: 'Bundle time');
     deleteDir(tempBuildPath, recursive: true);
-  }
-
-  void createVersioningFile() {
-    final verionTimer = time();
-    stopTimer(verionTimer, prefix: 'Versioning File');
   }
 
   void generateHomepage() {
