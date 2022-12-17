@@ -6,6 +6,7 @@ import 'package:puppeteer/puppeteer.dart' as ppt;
 
 const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
+const kCliPrefix = '\$SourceId\$';
 
 class Bundle extends Command {
   final String output;
@@ -73,7 +74,7 @@ class Bundle extends Command {
     final page = waitForEx(browser.newPage());
 
     waitForEx(page.evaluate(sourceContents));
-    final String sourceId = waitForEx(page.evaluate('SourceId'));
+    final String sourceId = waitForEx(page.evaluate(kCliPrefix));
     final dynamic sourceInfo = waitForEx(page.evaluate(sourceId));
     print(green('SOURCE ID: $sourceId', bold: true));
     print(green('SOURCE INFO: $sourceInfo', bold: true));
