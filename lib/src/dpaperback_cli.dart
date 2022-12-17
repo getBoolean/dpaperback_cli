@@ -21,7 +21,7 @@ class DartPaperbackCli {
     ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
     ..addOption(
       'paperback-extensions-common',
-      abbr: 'p',
+      abbr: 'c',
       help: 'The Paperback Extensions Common Package and Version',
       valueHelp: ':package@:version',
       defaultsTo: kDefaultPaperbackExtensionsCommon,
@@ -38,7 +38,7 @@ class DartPaperbackCli {
         abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
     ..addOption(
       'paperback-extensions-common',
-      abbr: 'p',
+      abbr: 'c',
       help: 'The Paperback Extensions Common Package and Version',
       valueHelp: ':package@:version',
       defaultsTo: kDefaultPaperbackExtensionsCommon,
