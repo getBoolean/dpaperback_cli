@@ -44,8 +44,10 @@ class Bundle extends Command {
       final timer = time();
       try {
         final sourceInfo = generateSourceInfo(browser, source, directoryPath);
+        final sourceId = sourceInfo['id'];
         (versioningFile['sources']! as List).add(sourceInfo);
-        stopTimer(timer, prefix: '- Generating ${sourceInfo["id"]} Info');
+        Directory(dir).renameSync(join(dirname(dir), sourceId));
+        stopTimer(timer, prefix: '- Generating $sourceId Info');
       } on FileNotFoundException {
         printerr(yellow('Skipping "$source", source.js not found'));
         continue;
