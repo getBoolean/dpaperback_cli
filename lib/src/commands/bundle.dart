@@ -158,7 +158,7 @@ class Bundle extends Command {
         createDir(tempSourceFolder, recursive: true);
       }
 
-      final exitCode = runDartJsCompiler(sourceFile, output: tempJsPath);
+      final exitCode = runDartJsCompiler(sourcePath, output: tempJsPath);
       if (exitCode != 0) {
         deleteDir(tempSourceFolder, recursive: true);
         continue;
@@ -239,13 +239,19 @@ class Bundle extends Command {
   }) {
     final process = Process.runSync(
       'dart',
-      ['compile', 'js', script, '-o', output, if (minify) '-m'],
+      ['compile', 'js', script, '-o', output, if (minify) '-m', '--no-source-maps'],
     );
     if (process.exitCode != 0) {
       printerr(yellow('Warning: Could not compile $script'));
+      printerr(process.stdout);
       printerr(process.stderr);
       print(yellow('Continuing...\n'));
+      return process.exitCode;
     }
+    if (exists('$output.deps')) {
+      delete('$output.deps');
+    }
+
     return process.exitCode;
   }
 }
