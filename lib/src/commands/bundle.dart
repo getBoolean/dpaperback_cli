@@ -218,8 +218,9 @@ class BundleCli with CommandTime {
         .exitCode;
   }
 
-    final compileTimer = time();
   Future<void> _compileSources(String tempBuildPath) async {
+    stdout.write('Compiling project: ');
+    final compileTime = TimeDisplay()..start();
 
     // Download paperback-extensions-common from npmjs.org
     final minifiedLib = join(tempBuildPath, kMinifiedLibrary);
@@ -275,7 +276,8 @@ class BundleCli with CommandTime {
       }
     }
 
-    stopTimer(compileTimer, prefix: 'Compiling project');
+    compileTime.stop();
+    stdout.writeln();
   }
 
   Future<void> _bundleJsDependencies(String outputFile) async {
