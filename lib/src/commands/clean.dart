@@ -8,7 +8,12 @@ class Clean extends Command<int> with CommandTime {
   Clean() {
     argParser
       ..addSeparator('Flags:')
-      ..addOption('target', abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib');
+      ..addOption(
+        'target',
+        abbr: 't',
+        help: 'The directory with generated output from the build process',
+        defaultsTo: './',
+      );
   }
   @override
   String get description => 'Deletes the bundles directory and the versioning file';
