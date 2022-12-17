@@ -155,6 +155,9 @@ class DartPaperbackCli {
     final outputArgument = command['output'] as String;
     final outputPath = canonicalize(outputArgument);
 
-    return createDir(outputPath, recursive: true);
+    if (!exists(outputPath)) {
+      createDir(outputPath, recursive: true);
+    }
+    return outputPath;
   }
 }
