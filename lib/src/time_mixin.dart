@@ -1,16 +1,20 @@
+import 'dart:io';
+
 import 'package:dcli/dcli.dart';
+import 'package:dpaperback_cli/src/custom_time_display.dart';
 
 const kDefaultPaperbackExtensionsCommon = 'paperback-extensions-common@^5.0.0-alpha.7';
 
 mixin CommandTime {
-  Stopwatch time() {
-    final Stopwatch timer = Stopwatch();
+  MillisecondTimeDisplay time({required String prefix}) {
+    final MillisecondTimeDisplay timer = MillisecondTimeDisplay();
+    stdout.write((blue('$prefix: ', bold: true)));
     timer.start();
     return timer;
   }
 
-  void stopTimer(Stopwatch timer, {String prefix = 'Time elapsed:'}) {
+  void stopTimer(MillisecondTimeDisplay timer) {
     timer.stop();
-    print((blue('$prefix: ${timer.elapsedMilliseconds}ms', bold: true)));
+    stdout.writeln();
   }
 }

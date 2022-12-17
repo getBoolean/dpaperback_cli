@@ -89,16 +89,17 @@ class BundleCli with CommandTime {
   BundleCli(this.output, this.target, {required this.source, required this.commonsPackage});
 
   Future<int> run() async {
-    final executionTimer = time();
+    final executionTimer = Stopwatch()..start();
     await bundleSources();
     await createVersioningFile();
     generateHomepage();
-    stopTimer(executionTimer, prefix: 'Execution time');
+    executionTimer.stop();
+    print((blue('Execution time: ${executionTimer.elapsedMilliseconds}ms', bold: true)));
     return 0;
   }
 
   Future<void> createVersioningFile() async {
-    final verionTimer = time();
+    final verionTimer = Stopwatch()..start();
 
     final versioningFileMap = {
       'buildTime': DateTime.now().toUtc().toIso8601String(),
@@ -115,13 +116,13 @@ class BundleCli with CommandTime {
         .toList();
     for (final dir in directories) {
       final source = basename(dir);
-      final timer = time();
       try {
+        final timer = time(prefix: '- Generating $source Info');
         final sourceInfo = await generateSourceInfo(browser, source, bundlesPath);
         final sourceId = sourceInfo['id'];
         Directory(dir).renameSync(join(dirname(dir), sourceId));
         (versioningFileMap['sources']! as List).add(sourceInfo);
-        stopTimer(timer, prefix: '- Generating $sourceId Info');
+        stopTimer(timer);
       } on FileNotFoundException {
         printerr(yellow('Skipping "$source", source.js not found'));
         continue;
@@ -139,7 +140,7 @@ class BundleCli with CommandTime {
     await browser.close();
     final versioningFileContents = jsonEncode(versioningFileMap);
     await File(join(bundlesPath, 'versioning.json')).writeAsString(versioningFileContents);
-    stopTimer(verionTimer, prefix: 'Versioning File');
+    print((blue('Versioning File: ${verionTimer.elapsedMilliseconds}ms', bold: true)));
   }
 
   Future<Map<String, dynamic>> generateSourceInfo(
@@ -156,8 +157,6 @@ class BundleCli with CommandTime {
     final String sourceId = await page.evaluate(kCliPrefix);
     final Map<String, dynamic> sourceInfo = await page.evaluate('${sourceId}Info');
     sourceInfo['id'] = sourceId;
-    print(green('SOURCE ID: $sourceId', bold: true));
-    print(green('SOURCE INFO: $sourceInfo', bold: true));
 
     return sourceInfo;
   }
@@ -180,7 +179,7 @@ class BundleCli with CommandTime {
 
     await _compileSources(tempBuildPath);
 
-    final buildTimer = time();
+    final buildTimer = time(prefix: 'Bundle time');
     final baseBundlesPath = join(output, 'bundles');
     final bundlesPath = join(baseBundlesPath, source);
     if (await File(bundlesPath).exists()) {
@@ -194,14 +193,14 @@ class BundleCli with CommandTime {
     // TODO: Make async
     copyTree(directoryPath, targetDirPath, overwrite: true);
 
-    stopTimer(buildTimer, prefix: 'Bundle time');
+    stopTimer(buildTimer);
     await Directory(tempBuildPath).delete(recursive: true);
   }
 
   void generateHomepage() {
-    final homepageTimer = time();
+    final homepageTimer = time(prefix: 'Homepage Generation');
 
-    stopTimer(homepageTimer, prefix: 'Homepage Generation');
+    stopTimer(homepageTimer);
   }
 
   /// Installs paperback-extensions-common from npmjs.org
