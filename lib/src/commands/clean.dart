@@ -47,6 +47,21 @@ class CleanCli with CommandTime {
   CleanCli(this.target);
 
   int run() {
+    final bundles = join(target, 'bundles');
+    if (exists(bundles)) {
+      deleteDir(bundles, recursive: true);
+    }
+
+    final tempBuild = join(target, 'temp_build');
+    if (exists(tempBuild)) {
+      deleteDir(tempBuild, recursive: true);
+    }
+
+    final localChromium = join(target, '.local-chromium');
+    if (exists(localChromium)) {
+      deleteDir(localChromium, recursive: true);
+    }
+
     return 0;
   }
 }
