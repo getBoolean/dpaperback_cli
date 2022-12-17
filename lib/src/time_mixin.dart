@@ -1,5 +1,7 @@
 import 'package:dcli/dcli.dart';
 
+const kDefaultPaperbackExtensionsCommon = 'paperback-extensions-common@^5.0.0-alpha.7';
+
 mixin CommandTime {
   Stopwatch time() {
     final Stopwatch timer = Stopwatch();

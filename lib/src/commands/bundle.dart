@@ -3,8 +3,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
-import 'package:dpaperback_cli/src/commands/command.dart';
-import 'package:dpaperback_cli/src/dpaperback_cli.dart';
+import 'package:dpaperback_cli/src/time_mixin.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
 import 'package:puppeteer/puppeteer.dart';
 
