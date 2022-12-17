@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dcli/dcli.dart';
@@ -28,25 +29,25 @@ class Bundle extends Command {
   void createVersioningFile() {
     final verionTimer = time();
 
-    final versioningFile = {
-      'buildTime': DateTime.now(),
+    final versioningFileMap = {
+      'buildTime': DateTime.now().toUtc().toIso8601String(),
       'sources': [],
     };
 
     final browser = waitForEx(ppt.puppeteer.launch());
-    final directoryPath = join(output, 'bundles');
+    final bundlesPath = join(output, 'bundles');
     // for each folder in bundles
-    final dirs =
-        find('*', workingDirectory: directoryPath, types: [Find.directory], recursive: false)
-            .toList();
+    final dirs = find('*', workingDirectory: bundlesPath, types: [Find.directory], recursive: false)
+        .toList();
     for (final dir in dirs) {
       final source = basename(dir);
       final timer = time();
       try {
-        final sourceInfo = generateSourceInfo(browser, source, directoryPath);
+        final sourceInfo = generateSourceInfo(browser, source, bundlesPath);
         final sourceId = sourceInfo['id'];
-        (versioningFile['sources']! as List).add(sourceInfo);
         Directory(dir).renameSync(join(dirname(dir), sourceId));
+        sourceInfo.remove('id');
+        (versioningFileMap['sources']! as List).add(sourceInfo);
         stopTimer(timer, prefix: '- Generating $sourceId Info');
       } on FileNotFoundException {
         printerr(yellow('Skipping "$source", source.js not found'));
@@ -63,6 +64,8 @@ class Bundle extends Command {
       }
     }
     waitForEx(browser.close());
+    final versioningFileContents = jsonEncode(versioningFileMap);
+    File(join(bundlesPath, 'versioning.json')).writeAsStringSync(versioningFileContents);
     stopTimer(verionTimer, prefix: 'Versioning File');
   }
 
