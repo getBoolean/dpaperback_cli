@@ -42,7 +42,7 @@ class Bundle extends Command<int> with CommandTime {
   String get name => 'bundle';
 
   @override
-  List<String> get aliases => [];
+  List<String> get aliases => ['build'];
 
   @override
   Future<int> run() async {
@@ -176,7 +176,9 @@ class BundleCli with CommandTime {
     final buildTimer = time();
     final baseBundlesPath = join(output, 'bundles');
     final bundlesPath = join(baseBundlesPath, source);
-    deleteDir(bundlesPath, recursive: true);
+    if (exists(bundlesPath)) {
+      deleteDir(bundlesPath, recursive: true);
+    }
     createDir(bundlesPath, recursive: true);
 
     final directoryPath = join(tempBuildPath, source);
