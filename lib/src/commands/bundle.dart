@@ -2,8 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:console/console.dart';
 import 'package:dcli/dcli.dart';
+import 'package:dpaperback_cli/src/custom_time_display.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
 import 'package:puppeteer/puppeteer.dart';
@@ -220,7 +220,7 @@ class BundleCli with CommandTime {
 
   Future<void> _compileSources(String tempBuildPath) async {
     stdout.write(blue('Compiling project: '));
-    final compileTime = TimeDisplay()..start();
+    final compileTime = MillisecondTimeDisplay()..start();
 
     // Download paperback-extensions-common from npmjs.org
     final minifiedLib = join(tempBuildPath, kMinifiedLibrary);
