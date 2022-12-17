@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/command.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
+import 'package:puppeteer/puppeteer.dart';
 
 const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
@@ -32,6 +33,7 @@ class Bundle extends Command {
       'sources': [],
     };
 
+    final browser = waitForEx(ppt.puppeteer.launch());
     final directoryPath = join(output, 'bundles');
     // for each folder in bundles
     final dirs =
@@ -41,7 +43,7 @@ class Bundle extends Command {
       final source = basename(dir);
       final timer = time();
       try {
-        final sourceInfo = generateSourceInfo(source, directoryPath);
+        final sourceInfo = generateSourceInfo(browser, source, directoryPath);
         (versioningFile['sources']! as List).add(sourceInfo);
         stopTimer(timer, prefix: '- Generating ${sourceInfo["id"]} Info');
       } on FileNotFoundException {
@@ -58,19 +60,17 @@ class Bundle extends Command {
         continue;
       }
     }
-
+    waitForEx(browser.close());
     stopTimer(verionTimer, prefix: 'Versioning File');
   }
 
-  Map<String, dynamic> generateSourceInfo(String source, String directoryPath) {
+  Map<String, dynamic> generateSourceInfo(Browser browser, String source, String directoryPath) {
     final sourceJs = join(directoryPath, source, 'source.js');
     // TODO: Rename source folder to id from source.js
     final sourceContents = exists(sourceJs) ? File(sourceJs).readAsStringSync() : null;
     if (sourceContents == null) {
       throw FileNotFoundException(sourceJs);
     }
-
-    final browser = waitForEx(ppt.puppeteer.launch());
     final page = waitForEx(browser.newPage());
 
     waitForEx(page.evaluate(sourceContents));
@@ -79,7 +79,6 @@ class Bundle extends Command {
     sourceInfo['id'] = sourceId;
     print(green('SOURCE ID: $sourceId', bold: true));
     print(green('SOURCE INFO: $sourceInfo', bold: true));
-    waitForEx(browser.close());
 
     return sourceInfo;
   }
