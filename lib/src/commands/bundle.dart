@@ -86,7 +86,9 @@ class Bundle extends Command {
   void bundleSources() {
     final tempBuildPath = join(output, 'temp_build');
     // delete all files in temp_build except kMinifiedLibrary
-    createDir(tempBuildPath);
+    if (!exists(tempBuildPath)) {
+      createDir(tempBuildPath, recursive: true);
+    }
     find('*', workingDirectory: tempBuildPath, recursive: false).forEach((file) {
       if (isFile(file) && file != kMinifiedLibrary) {
         delete(file);
@@ -152,7 +154,9 @@ class Bundle extends Command {
       final tempSourceFolder = join(tempBuildPath, basename(targetSource));
       final tempJsPath = join(tempSourceFolder, 'temp.source.js');
       final finalJsPath = join(tempSourceFolder, 'source.js');
-      createDir(tempSourceFolder, recursive: true);
+      if (!exists(tempSourceFolder)) {
+        createDir(tempSourceFolder, recursive: true);
+      }
 
       final exitCode = runDartJsCompiler(sourceFile, output: tempJsPath);
       if (exitCode != 0) {
@@ -171,7 +175,10 @@ class Bundle extends Command {
       final includesPath = join(targetSource, 'includes');
       if (exists(includesPath)) {
         final includesDestPath = join(tempSourceFolder, 'includes');
-        createDir(includesDestPath, recursive: true);
+        if (!exists(includesDestPath)) {
+          createDir(includesDestPath, recursive: true);
+        }
+
         copyTree(includesPath, includesDestPath, overwrite: true);
       }
     }
@@ -192,7 +199,9 @@ class Bundle extends Command {
       deleteDir(commonsTempDir, recursive: true);
       exit(browserifySuccessCode);
     }
-    createDir(dirname(outputFile), recursive: true);
+    if (!exists(dirname(outputFile))) {
+      createDir(dirname(outputFile), recursive: true);
+    }
     _bundleCommons(commonsTempDir, output: outputFile);
     deleteDir(commonsTempDir, recursive: true);
   }
