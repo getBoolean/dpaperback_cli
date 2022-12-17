@@ -15,7 +15,7 @@ class DartPaperbackCli {
     ..addFlag('verbose',
         abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.')
     ..addOption('output',
-        abbr: 'o', help: 'The output directory.', defaultsTo: 'modules', valueHelp: 'folder')
+        abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
     ..addOption('target',
         abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
     ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
@@ -33,7 +33,7 @@ class DartPaperbackCli {
     ..addFlag('verbose',
         abbr: 'v', defaultsTo: false, negatable: false, help: 'Enable verbose logging.')
     ..addOption('output',
-        abbr: 'o', help: 'The output directory.', defaultsTo: 'modules', valueHelp: 'folder')
+        abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
     ..addOption('target',
         abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
     ..addOption(
@@ -69,7 +69,7 @@ class DartPaperbackCli {
     print(green(
         '   bundle          Builds all the sources in the repository and generates a versioning file'));
     print(green('   serve           Build the sources and start a local server'));
-    print(green('   clean           Deletes the modules directory and the versioning file'));
+    print(green('   clean           Deletes the bundles directory and the versioning file'));
   }
 
   String commandUsage(String command) {
@@ -136,7 +136,7 @@ class DartPaperbackCli {
     print(blue('Cleaning...'));
 
     final target = parseTargetPath(command);
-    deleteDir(join(target, 'modules'));
+    deleteDir(join(target, 'bundles'));
     deleteDir(join(target, 'temp_build'));
   }
 
