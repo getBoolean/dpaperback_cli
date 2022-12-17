@@ -43,7 +43,7 @@ class Bundle extends Command {
       try {
         final sourceInfo = generateSourceInfo(source, directoryPath);
         (versioningFile['sources']! as List).add(sourceInfo);
-        stopTimer(timer, prefix: '- Generating $dir Info');
+        stopTimer(timer, prefix: '- Generating ${sourceInfo["id"]} Info');
       } on FileNotFoundException {
         printerr(yellow('Skipping "$source", source.js not found'));
         continue;
@@ -75,10 +75,10 @@ class Bundle extends Command {
 
     waitForEx(page.evaluate(sourceContents));
     final String sourceId = waitForEx(page.evaluate(kCliPrefix));
-    final dynamic sourceInfo = waitForEx(page.evaluate(sourceId));
+    final Map<String, dynamic> sourceInfo = waitForEx(page.evaluate('${sourceId}Info'));
+    sourceInfo['id'] = sourceId;
     print(green('SOURCE ID: $sourceId', bold: true));
     print(green('SOURCE INFO: $sourceInfo', bold: true));
-
     waitForEx(browser.close());
 
     return sourceInfo;
