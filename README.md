@@ -19,7 +19,7 @@ dart pub global activate https://github.com/getBoolean/dart_pb_cli
 # pub global activate dpaperback_cli 0.4.1
 ```
 
-Alternatively, it can be added as a dev dependency to your `pubspec.yaml` file. Use the command `dart run :dpaperback` to use the CLI. (Note the `:` before the `dpaperback`)
+Alternatively, it can be added as a dev dependency to your `pubspec.yaml` file. Use the command `dart run dpaperback_cli:dpaperback` to use the CLI. (Note the `:` in the middle)
 
 ```yaml
 dev_dependencies:
