@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:console/console.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
@@ -49,7 +50,7 @@ class Bundle extends Command<int> {
     final results = argResults;
     if (results == null) return 1;
 
-    output = parseOutputPath(results);
+    output = await parseOutputPath(results);
     target = parseTargetPath(results);
     source = results['source'] as String?;
     commonsPackage = results['paperback-extensions-common'] as String;
@@ -68,12 +69,12 @@ class Bundle extends Command<int> {
     return targetPath;
   }
 
-  String parseOutputPath(ArgResults command) {
+  Future<String> parseOutputPath(ArgResults command) async {
     final outputArgument = command['output'] as String;
     final outputPath = canonicalize(outputArgument);
 
     if (!exists(outputPath)) {
-      createDir(outputPath, recursive: true);
+      await Directory(outputPath).create(recursive: true);
     }
     return outputPath;
   }
@@ -87,16 +88,16 @@ class BundleCli with CommandTime {
 
   BundleCli(this.output, this.target, {required this.source, required this.commonsPackage});
 
-  int run() {
+  Future<int> run() async {
     final executionTimer = time();
-    bundleSources();
-    createVersioningFile();
+    await bundleSources();
+    await createVersioningFile();
     generateHomepage();
     stopTimer(executionTimer, prefix: 'Execution time');
     return 0;
   }
 
-  void createVersioningFile() {
+  Future<void> createVersioningFile() async {
     final verionTimer = time();
 
     final versioningFileMap = {
@@ -104,16 +105,19 @@ class BundleCli with CommandTime {
       'sources': [],
     };
 
-    final browser = waitForEx(ppt.puppeteer.launch());
+    final browser = await ppt.puppeteer.launch();
     final bundlesPath = join(output, 'bundles');
-    // for each folder in bundles
-    final dirs = find('*', workingDirectory: bundlesPath, types: [Find.directory], recursive: false)
+    // TODO: Make async FileSystemEntity.isDirectorySync
+    final directories = await Directory(bundlesPath)
+        .list()
+        .where((entity) => FileSystemEntity.isDirectorySync(entity.path))
+        .map((entity) => entity.path)
         .toList();
-    for (final dir in dirs) {
+    for (final dir in directories) {
       final source = basename(dir);
       final timer = time();
       try {
-        final sourceInfo = generateSourceInfo(browser, source, bundlesPath);
+        final sourceInfo = await generateSourceInfo(browser, source, bundlesPath);
         final sourceId = sourceInfo['id'];
         Directory(dir).renameSync(join(dirname(dir), sourceId));
         (versioningFileMap['sources']! as List).add(sourceInfo);
@@ -132,24 +136,25 @@ class BundleCli with CommandTime {
         continue;
       }
     }
-    waitForEx(browser.close());
+    await browser.close();
     final versioningFileContents = jsonEncode(versioningFileMap);
-    File(join(bundlesPath, 'versioning.json')).writeAsStringSync(versioningFileContents);
+    await File(join(bundlesPath, 'versioning.json')).writeAsString(versioningFileContents);
     stopTimer(verionTimer, prefix: 'Versioning File');
   }
 
-  Map<String, dynamic> generateSourceInfo(Browser browser, String source, String directoryPath) {
+  Future<Map<String, dynamic>> generateSourceInfo(
+      Browser browser, String source, String directoryPath) async {
     final sourceJs = join(directoryPath, source, 'source.js');
-    // TODO: Rename source folder to id from source.js
-    final sourceContents = exists(sourceJs) ? File(sourceJs).readAsStringSync() : null;
+    final sourceContents =
+        await File(sourceJs).exists() ? await File(sourceJs).readAsString() : null;
     if (sourceContents == null) {
       throw FileNotFoundException(sourceJs);
     }
-    final page = waitForEx(browser.newPage());
+    final page = await browser.newPage();
 
-    waitForEx(page.evaluate(sourceContents));
-    final String sourceId = waitForEx(page.evaluate(kCliPrefix));
-    final Map<String, dynamic> sourceInfo = waitForEx(page.evaluate('${sourceId}Info'));
+    await page.evaluate(sourceContents);
+    final String sourceId = await page.evaluate(kCliPrefix);
+    final Map<String, dynamic> sourceInfo = await page.evaluate('${sourceId}Info');
     sourceInfo['id'] = sourceId;
     print(green('SOURCE ID: $sourceId', bold: true));
     print(green('SOURCE INFO: $sourceInfo', bold: true));
@@ -157,36 +162,40 @@ class BundleCli with CommandTime {
     return sourceInfo;
   }
 
-  void bundleSources() {
+  Future<void> bundleSources() async {
     final tempBuildPath = join(output, 'temp_build');
     // delete all files in temp_build except kMinifiedLibrary
     if (!exists(tempBuildPath)) {
-      createDir(tempBuildPath, recursive: true);
+      await Directory(tempBuildPath).create(recursive: true);
     }
-    find('*', workingDirectory: tempBuildPath, recursive: false).forEach((file) {
-      if (isFile(file) && file != kMinifiedLibrary) {
-        delete(file);
-      } else if (isDirectory(file)) {
-        deleteDir(file, recursive: true);
-      }
-    });
+    final files = find('*', workingDirectory: tempBuildPath, recursive: false).toList();
 
-    _compileSources(tempBuildPath);
+    for (final file in files) {
+      if (isFile(file) && file != kMinifiedLibrary) {
+        await File(file).delete();
+      } else if (isDirectory(file)) {
+        await Directory(file).delete(recursive: true);
+      }
+    }
+
+    await _compileSources(tempBuildPath);
 
     final buildTimer = time();
     final baseBundlesPath = join(output, 'bundles');
     final bundlesPath = join(baseBundlesPath, source);
-    if (exists(bundlesPath)) {
-      deleteDir(bundlesPath, recursive: true);
+    if (await File(bundlesPath).exists()) {
+      await Directory(bundlesPath).delete(recursive: true);
     }
-    createDir(bundlesPath, recursive: true);
+    await Directory(bundlesPath).create(recursive: true);
 
     final directoryPath = join(tempBuildPath, source);
     final targetDirPath = join(bundlesPath, source);
+
+    // TODO: Make async
     copyTree(directoryPath, targetDirPath, overwrite: true);
 
     stopTimer(buildTimer, prefix: 'Bundle time');
-    deleteDir(tempBuildPath, recursive: true);
+    await Directory(tempBuildPath).delete(recursive: true);
   }
 
   void generateHomepage() {
@@ -196,30 +205,36 @@ class BundleCli with CommandTime {
   }
 
   /// Installs paperback-extensions-common from npmjs.org
-  int installJsPackage(String package, {required String workingDirectory, bool global = false}) {
-    return Process.runSync(
+  Future<int> installJsPackage(
+    String package, {
+    required String workingDirectory,
+    bool global = false,
+  }) async {
+    return (await Process.run(
       'npm',
       ['install', package, if (global) '-g'],
       workingDirectory: workingDirectory,
-    ).exitCode;
+    ))
+        .exitCode;
   }
 
-  void _compileSources(String tempBuildPath) {
     final compileTimer = time();
+  Future<void> _compileSources(String tempBuildPath) async {
 
     // Download paperback-extensions-common from npmjs.org
     final minifiedLib = join(tempBuildPath, kMinifiedLibrary);
-    if (!exists(minifiedLib)) {
-      _bundleJsDependencies(minifiedLib);
+    if (!await File(minifiedLib).exists()) {
+      await _bundleJsDependencies(minifiedLib);
     }
 
+    // TODO: Make async
     final sources = source != null
         ? [join(target, source)]
         : find('*', workingDirectory: target, types: [Find.directory], recursive: false).toList();
     for (final targetSource in sources) {
       final sourceFile = '${basename(targetSource)}.dart';
       final sourcePath = join(targetSource, sourceFile);
-      if (!exists(sourcePath)) {
+      if (!await File(sourcePath).exists()) {
         printerr(yellow(
           'Skipping "${basename(targetSource)}", expected source file "$sourceFile" not found',
         ));
@@ -230,31 +245,32 @@ class BundleCli with CommandTime {
       final tempSourceFolder = join(tempBuildPath, basename(targetSource));
       final tempJsPath = join(tempSourceFolder, 'temp.source.js');
       final finalJsPath = join(tempSourceFolder, 'source.js');
-      if (!exists(tempSourceFolder)) {
-        createDir(tempSourceFolder, recursive: true);
+      if (!await File(tempSourceFolder).exists()) {
+        await Directory(tempSourceFolder).create(recursive: true);
       }
 
-      final exitCode = runDartJsCompiler(sourcePath, output: tempJsPath);
+      final exitCode = await runDartJsCompiler(sourcePath, output: tempJsPath);
       if (exitCode != 0) {
         deleteDir(tempSourceFolder, recursive: true);
         continue;
       }
       copy(minifiedLib, finalJsPath, overwrite: true);
       // append generated dart source to minified js dependencies
-      File(finalJsPath).writeAsBytesSync(
-        File(tempJsPath).readAsBytesSync(),
+      await File(finalJsPath).writeAsBytes(
+        await File(tempJsPath).readAsBytes(),
         mode: FileMode.append,
       );
-      delete(tempJsPath);
+      await File(tempJsPath).delete();
 
       // copy includes folder
       final includesPath = join(targetSource, 'includes');
-      if (exists(includesPath)) {
+      if (await File(includesPath).exists()) {
         final includesDestPath = join(tempSourceFolder, 'includes');
-        if (!exists(includesDestPath)) {
-          createDir(includesDestPath, recursive: true);
+        if (!await File(includesDestPath).exists()) {
+          await Directory(includesDestPath).create(recursive: true);
         }
 
+        // TODO: Make async
         copyTree(includesPath, includesDestPath, overwrite: true);
       }
     }
@@ -262,15 +278,16 @@ class BundleCli with CommandTime {
     stopTimer(compileTimer, prefix: 'Compiling project');
   }
 
-  void _bundleJsDependencies(String outputFile) {
+  Future<void> _bundleJsDependencies(String outputFile) async {
     final commonsTempDir = createTempDir();
-    final commonSuccessCode = installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
+    final commonSuccessCode =
+        await installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
     if (commonSuccessCode != 0) {
       deleteDir(commonsTempDir, recursive: true);
       exit(commonSuccessCode);
     }
     final browserifySuccessCode =
-        installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
+        await installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
     if (browserifySuccessCode != 0) {
       deleteDir(commonsTempDir, recursive: true);
       exit(browserifySuccessCode);
@@ -278,12 +295,12 @@ class BundleCli with CommandTime {
     if (!exists(dirname(outputFile))) {
       createDir(dirname(outputFile), recursive: true);
     }
-    _bundleCommons(commonsTempDir, output: outputFile);
+    await _bundleCommons(commonsTempDir, output: outputFile);
     deleteDir(commonsTempDir, recursive: true);
   }
 
-  int _bundleCommons(String tempDir, {required String output}) {
-    return Process.runSync(
+  Future<int> _bundleCommons(String tempDir, {required String output}) async {
+    return (await Process.run(
       'browserify',
       [
         'node_modules/paperback-extensions-common/lib/index.js',
@@ -301,19 +318,20 @@ class BundleCli with CommandTime {
         output,
       ],
       workingDirectory: tempDir,
-    ).exitCode;
+    ))
+        .exitCode;
   }
 
   /// Runs the dart compiler to compile the given [script] to js.
   /// The compiled js file will be saved to [output].
   ///
   /// Returns the exit code of the process.
-  int runDartJsCompiler(
+  Future<int> runDartJsCompiler(
     String script, {
     required String output,
     bool minify = true,
-  }) {
-    final process = Process.runSync(
+  }) async {
+    final process = await Process.run(
       'dart',
       ['compile', 'js', script, '-o', output, if (minify) '-m', '--no-source-maps'],
     );

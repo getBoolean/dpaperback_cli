@@ -51,20 +51,20 @@ class CleanCli with CommandTime {
 
   CleanCli(this.target);
 
-  int run() {
+  Future<int> run() async {
     final bundles = join(target, 'bundles');
     if (exists(bundles)) {
-      deleteDir(bundles, recursive: true);
+      await Directory(bundles).delete(recursive: true);
     }
 
     final tempBuild = join(target, 'temp_build');
     if (exists(tempBuild)) {
-      deleteDir(tempBuild, recursive: true);
+      await Directory(tempBuild).delete(recursive: true);
     }
 
     final localChromium = join(target, '.local-chromium');
     if (exists(localChromium)) {
-      deleteDir(localChromium, recursive: true);
+      await Directory(localChromium).delete(recursive: true);
     }
 
     return 0;

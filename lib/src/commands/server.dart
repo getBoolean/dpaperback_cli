@@ -36,7 +36,7 @@ class Server extends Command<int> {
     final results = argResults;
     if (results == null) return 0;
 
-    final output = parseOutputPath(results);
+    final output = await parseOutputPath(results);
     final target = parseTargetPath(results);
     final commonsPackage = results['paperback-extensions-common'] as String;
     final port = results['port'];
@@ -55,12 +55,12 @@ class Server extends Command<int> {
     return targetPath;
   }
 
-  String parseOutputPath(ArgResults command) {
+  Future<String> parseOutputPath(ArgResults command) async {
     final outputArgument = command['output'] as String;
     final outputPath = canonicalize(outputArgument);
 
     if (!exists(outputPath)) {
-      createDir(outputPath, recursive: true);
+      await Directory(outputPath).create(recursive: true);
     }
     return outputPath;
   }
