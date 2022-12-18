@@ -101,7 +101,7 @@ class BundleCli with CommandTime {
   BundleCli({
     required this.output,
     required this.target,
-    required this.source,
+    this.source,
     required this.commonsPackage,
     required this.container,
   });
@@ -109,7 +109,10 @@ class BundleCli with CommandTime {
   Future<int> run() async {
     final executionTimer = Stopwatch()..start();
     futureBrowser = container.read(browserProvider.future);
-    await bundleSources();
+    final successCode = await bundleSources();
+    if (successCode != 0) {
+      return successCode;
+    }
     await createVersioningFile();
     generateHomepage();
     executionTimer.stop();
@@ -191,7 +194,7 @@ class BundleCli with CommandTime {
     final files = find('*', workingDirectory: tempBuildPath, recursive: false).toList();
 
     for (final file in files) {
-      if (isFile(file) && file != kMinifiedLibrary) {
+      if (isFile(file) && basename(file) != kMinifiedLibrary) {
         await File(file).delete();
       } else if (isDirectory(file)) {
         await Directory(file).delete(recursive: true);
@@ -205,10 +208,12 @@ class BundleCli with CommandTime {
 
     final baseBundlesPath = join(output, 'bundles');
     final bundlesPath = join(baseBundlesPath, source);
-    if (await Directory(bundlesPath).exists()) {
-      await Directory(bundlesPath).delete(recursive: true);
+    if (source != null) {
+      if (await Directory(bundlesPath).exists()) {
+        await Directory(bundlesPath).delete(recursive: true);
+      }
+      await Directory(bundlesPath).create(recursive: true);
     }
-    await Directory(bundlesPath).create(recursive: true);
 
     final directoryPath = join(tempBuildPath, source);
     final targetDirPath = join(bundlesPath, source);
