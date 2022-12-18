@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
+import 'package:riverpod/riverpod.dart';
 
 class Server extends Command<int> {
-  Server() {
+  final ProviderContainer container;
+  Server([ProviderContainer? container]) : container = container ?? ProviderContainer() {
     argParser
       ..addSeparator('Flags:')
       ..addOption('output',
@@ -41,7 +43,13 @@ class Server extends Command<int> {
     final commonsPackage = results['paperback-extensions-common'] as String;
     final port = results['port'];
 
-    return ServerCli(output, target, port, commonsPackage).run();
+    return ServerCli(
+      output: output,
+      target: target,
+      port: port,
+      commonsPackage: commonsPackage,
+      container: container,
+    ).run();
   }
 
   String parseTargetPath(ArgResults command) {
@@ -69,10 +77,17 @@ class Server extends Command<int> {
 class ServerCli with CommandTime {
   final String output;
   final String target;
-  final String commonsUrl;
+  final String commonsPackage;
   final int port;
+  final ProviderContainer container;
 
-  ServerCli(this.output, this.target, this.port, this.commonsUrl);
+  ServerCli({
+    required this.output,
+    required this.target,
+    required this.port,
+    required this.commonsPackage,
+    required this.container,
+  });
 
   int run() {
     print(blue('\nStarting Server on port $port'));

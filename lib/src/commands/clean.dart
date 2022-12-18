@@ -3,9 +3,11 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
+import 'package:riverpod/riverpod.dart';
 
 class Clean extends Command<int> {
-  Clean() {
+  final ProviderContainer container;
+  Clean([ProviderContainer? container]) : container = container ?? ProviderContainer() {
     argParser
       ..addSeparator('Flags:')
       ..addOption(
@@ -31,7 +33,10 @@ class Clean extends Command<int> {
 
     final target = parseTargetPath(results);
 
-    return CleanCli(target).run();
+    return CleanCli(
+      target: target,
+      container: container,
+    ).run();
   }
 
   String parseTargetPath(ArgResults command) {
@@ -48,8 +53,9 @@ class Clean extends Command<int> {
 
 class CleanCli with CommandTime {
   final String target;
+  final ProviderContainer container;
 
-  CleanCli(this.target);
+  CleanCli({required this.target, required this.container});
 
   Future<int> run() async {
     final bundles = join(target, 'bundles');

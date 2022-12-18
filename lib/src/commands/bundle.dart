@@ -7,18 +7,22 @@ import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
 import 'package:puppeteer/puppeteer.dart';
+import 'package:riverpod/riverpod.dart';
 
 const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
 const kCliPrefix = '\$SourceId\$';
+
+final browserProvider = FutureProvider((_) => ppt.puppeteer.launch());
 
 class Bundle extends Command<int> {
   late String output;
   late String target;
   late String? source;
   late String commonsPackage;
+  final ProviderContainer container;
 
-  Bundle() {
+  Bundle([ProviderContainer? container]) : container = container ?? ProviderContainer() {
     argParser
       ..addSeparator('Flags:')
       ..addOption('output',
@@ -55,7 +59,13 @@ class Bundle extends Command<int> {
     source = results['source'] as String?;
     commonsPackage = results['paperback-extensions-common'] as String;
 
-    return BundleCli(output, target, source: source, commonsPackage: commonsPackage).run();
+    return BundleCli(
+      output: output,
+      target: target,
+      source: source,
+      commonsPackage: commonsPackage,
+      container: container,
+    ).run();
   }
 
   String parseTargetPath(ArgResults command) {
@@ -73,7 +83,7 @@ class Bundle extends Command<int> {
     final outputArgument = command['output'] as String;
     final outputPath = canonicalize(outputArgument);
 
-    if (!exists(outputPath)) {
+    if (!await Directory(outputPath).exists()) {
       await Directory(outputPath).create(recursive: true);
     }
     return outputPath;
@@ -85,11 +95,20 @@ class BundleCli with CommandTime {
   final String target;
   final String? source;
   final String commonsPackage;
+  final ProviderContainer container;
+  late Future<Browser> futureBrowser;
 
-  BundleCli(this.output, this.target, {required this.source, required this.commonsPackage});
+  BundleCli({
+    required this.output,
+    required this.target,
+    required this.source,
+    required this.commonsPackage,
+    required this.container,
+  });
 
   Future<int> run() async {
     final executionTimer = Stopwatch()..start();
+    futureBrowser = container.read(browserProvider.future);
     await bundleSources();
     await createVersioningFile();
     generateHomepage();
@@ -106,8 +125,8 @@ class BundleCli with CommandTime {
       'sources': [],
     };
 
-    final puppeteerTimer = time(prefix: 'Launching puppeteer: ');
-    final browser = await ppt.puppeteer.launch();
+    final puppeteerTimer = time(prefix: 'Launching puppeteer');
+    final browser = await futureBrowser;
     stopTimer(puppeteerTimer);
     final bundlesPath = join(output, 'bundles');
     // TODO: Make async FileSystemEntity.isDirectorySync
@@ -139,10 +158,10 @@ class BundleCli with CommandTime {
         continue;
       }
     }
+    unawaited(browser.close());
     final versioningFileContents = jsonEncode(versioningFileMap);
     await File(join(bundlesPath, 'versioning.json')).writeAsString(versioningFileContents);
     print((blue('Versioning File: ${verionTimer.elapsedMilliseconds}ms', bold: true)));
-    unawaited(browser.close());
   }
 
   Future<Map<String, dynamic>> generateSourceInfo(
@@ -163,7 +182,7 @@ class BundleCli with CommandTime {
     return sourceInfo;
   }
 
-  Future<void> bundleSources() async {
+  Future<int> bundleSources() async {
     final tempBuildPath = join(output, 'temp_build');
     // delete all files in temp_build except kMinifiedLibrary
     if (!exists(tempBuildPath)) {
@@ -179,7 +198,10 @@ class BundleCli with CommandTime {
       }
     }
 
-    await _compileSources(tempBuildPath);
+    final successCode = await _compileSources(tempBuildPath);
+    if (successCode != 0) {
+      return successCode;
+    }
 
     final baseBundlesPath = join(output, 'bundles');
     final bundlesPath = join(baseBundlesPath, source);
@@ -195,6 +217,7 @@ class BundleCli with CommandTime {
     copyTree(directoryPath, targetDirPath, overwrite: true);
 
     await Directory(tempBuildPath).delete(recursive: true);
+    return 0;
   }
 
   void generateHomepage() {
@@ -217,13 +240,16 @@ class BundleCli with CommandTime {
         .exitCode;
   }
 
-  Future<void> _compileSources(String tempBuildPath) async {
+  Future<int> _compileSources(String tempBuildPath) async {
     // Download paperback-extensions-common from npmjs.org
     final minifiedLib = join(output, 'bundles', kMinifiedLibrary);
     if (!await File(minifiedLib).exists()) {
       final timer = time(prefix: 'Downloading dependencies');
-      await _bundleJsDependencies(minifiedLib);
+      final successCode = await _bundleJsDependencies(minifiedLib);
       stopTimer(timer);
+      if (successCode != 0) {
+        return successCode;
+      }
     }
 
     final compileTime = time(prefix: 'Compiling project');
@@ -252,10 +278,10 @@ class BundleCli with CommandTime {
 
       final exitCode = await runDartJsCompiler(sourcePath, output: tempJsPath);
       if (exitCode != 0) {
-        deleteDir(tempSourceFolder, recursive: true);
+        await Directory(tempSourceFolder).delete(recursive: true);
         continue;
       }
-      copy(minifiedLib, finalJsPath, overwrite: true);
+      await File(minifiedLib).copy(finalJsPath);
       // append generated dart source to minified js dependencies
       await File(finalJsPath).writeAsBytes(
         await File(tempJsPath).readAsBytes(),
@@ -277,27 +303,30 @@ class BundleCli with CommandTime {
     }
 
     stopTimer(compileTime);
+    return 0;
   }
 
-  Future<void> _bundleJsDependencies(String outputFile) async {
+  Future<int> _bundleJsDependencies(String outputFile) async {
+    // TODO: make async
     final commonsTempDir = createTempDir();
     final commonSuccessCode =
         await installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
     if (commonSuccessCode != 0) {
-      deleteDir(commonsTempDir, recursive: true);
-      exit(commonSuccessCode);
+      await Directory(commonsTempDir).delete(recursive: true);
+      return commonSuccessCode;
     }
     final browserifySuccessCode =
         await installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
     if (browserifySuccessCode != 0) {
-      deleteDir(commonsTempDir, recursive: true);
-      exit(browserifySuccessCode);
+      await Directory(commonsTempDir).delete(recursive: true);
+      return browserifySuccessCode;
     }
     if (!exists(dirname(outputFile))) {
-      createDir(dirname(outputFile), recursive: true);
+      await Directory(dirname(outputFile)).create(recursive: true);
     }
     await _bundleCommons(commonsTempDir, output: outputFile);
-    deleteDir(commonsTempDir, recursive: true);
+    await Directory(commonsTempDir).delete(recursive: true);
+    return 0;
   }
 
   Future<int> _bundleCommons(String tempDir, {required String output}) async {

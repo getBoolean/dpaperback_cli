@@ -1,16 +1,21 @@
 import 'package:cli_completion/cli_completion.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/dpaperback_cli.dart';
+import 'package:riverpod/riverpod.dart';
 
 const executableName = 'dpaperback';
 const packageName = 'dpaperback_cli';
 const description = 'A commandline tool for bundling and serving Paperback written in Dart.';
 
 class DartPaperbackCommandRunner extends CompletionCommandRunner<int> {
-  DartPaperbackCommandRunner() : super(executableName, description) {
-    addCommand(Bundle());
-    addCommand(Server());
-    addCommand(Clean());
+  final ProviderContainer container;
+
+  DartPaperbackCommandRunner([ProviderContainer? container])
+      : container = container ?? ProviderContainer(),
+        super(executableName, description) {
+    addCommand(Bundle(container));
+    addCommand(Server(container));
+    addCommand(Clean(container));
   }
 
   @override
