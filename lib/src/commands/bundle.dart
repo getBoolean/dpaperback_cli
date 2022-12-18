@@ -265,7 +265,6 @@ class BundleCli with CommandTime {
 
       // copy includes folder
       final includesPath = join(targetSource, 'includes');
-      print(green(includesPath, bold: true));
       if (await Directory(includesPath).exists()) {
         final includesDestPath = join(tempSourceFolder, 'includes');
         if (!await Directory(includesDestPath).exists()) {
