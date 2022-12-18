@@ -144,9 +144,11 @@ packages:
   dart_pb_extensions_common:
     dependency: "direct main"
     description:
-      path: "../dart_pb_extensions_common"
-      relative: true
-    source: path
+      path: "."
+      ref: HEAD
+      resolved-ref: "1806df3a0f56833fc27c9a64947173d6eef267a0"
+      url: "https://github.com/getBoolean/dart_pb_extensions_common"
+    source: git
     version: "1.0.0"
   dcli:
     dependency: "direct main"
