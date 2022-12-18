@@ -221,12 +221,12 @@ class BundleCli with CommandTime {
     // Download paperback-extensions-common from npmjs.org
     final minifiedLib = join(output, 'bundles', kMinifiedLibrary);
     if (!await File(minifiedLib).exists()) {
-      final timer = time(prefix: 'Downloading dependencies: ');
+      final timer = time(prefix: 'Downloading dependencies');
       await _bundleJsDependencies(minifiedLib);
       stopTimer(timer);
     }
 
-    final compileTime = time(prefix: 'Compiling project: ');
+    final compileTime = time(prefix: 'Compiling project');
 
     // TODO: Make async
     final sources = source != null
