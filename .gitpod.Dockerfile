@@ -1,7 +1,7 @@
 FROM gitpod/workspace-full
 SHELL ["/bin/bash", "-c"]
 
-ENV FLUTTER_VERSION=3.3.9-stable
+ENV FLUTTER_VERSION=3.3.10-stable
 ENV PATH=/usr/lib/dart/bin:$PATH
 ENV JAVA_VERSION=17.0.5-ms
 
