@@ -443,7 +443,7 @@ packages:
     source: hosted
     version: "4.0.1"
   shelf:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: shelf
       url: "https://pub.dartlang.org"
@@ -457,7 +457,7 @@ packages:
     source: hosted
     version: "3.0.1"
   shelf_static:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: shelf_static
       url: "https://pub.dartlang.org"

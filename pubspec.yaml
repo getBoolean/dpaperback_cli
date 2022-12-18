@@ -21,6 +21,8 @@ dependencies:
   dcli: ^1.36.0
   puppeteer: ^2.19.0
   riverpod: ^2.1.1
+  shelf: ^1.4.0
+  shelf_static: ^1.1.1
 
 dev_dependencies:
   lints: ^2.0.0
