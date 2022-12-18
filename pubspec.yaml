@@ -19,7 +19,7 @@ dependencies:
   dart_pb_extensions_common:
     git: https://github.com/getBoolean/dart_pb_extensions_common
   dcli: ^1.36.0
-  get_ip_address: ^0.0.5
+  intranet_ip: ^1.0.2
   puppeteer: ^2.19.0
   riverpod: ^2.1.1
   shelf: ^1.4.0

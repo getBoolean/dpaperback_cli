@@ -204,13 +204,6 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.0"
-  get_ip_address:
-    dependency: "direct main"
-    description:
-      name: get_ip_address
-      url: "https://pub.dartlang.org"
-    source: hosted
-    version: "0.0.5"
   glob:
     dependency: transitive
     description:
@@ -267,6 +260,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "0.17.0"
+  intranet_ip:
+    dependency: "direct main"
+    description:
+      name: intranet_ip
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.2"
   io:
     dependency: transitive
     description:
@@ -428,6 +428,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.3.1"
+  random_uint8list:
+    dependency: transitive
+    description:
+      name: random_uint8list
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.2"
   riverpod:
     dependency: "direct main"
     description:

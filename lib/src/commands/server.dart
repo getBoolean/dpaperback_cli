@@ -2,9 +2,11 @@ import 'dart:io' as io;
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:console/console.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/bundle.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
+import 'package:intranet_ip/intranet_ip.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
@@ -120,15 +122,18 @@ class ServerCli with CommandTime {
     final bundlesPath = join(output, 'bundles');
     final pipeline = const shelf.Pipeline()..addMiddleware(shelf.logRequests());
     final handler = pipeline.addHandler(
-      createStaticHandler(bundlesPath, defaultDocument: 'versioning.json', listDirectories: true),
+      createStaticHandler(bundlesPath,
+          /*defaultDocument: 'versioning.json', */ listDirectories: true),
     );
-    // await IpAddress().getIpAddress()
-    final server = await shelf_io.serve(handler, host ?? '127.0.0.1', port);
+    final ip = await intranetIpv4();
+    // TODO: Move server onto isolate
+    final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
     print(green('\nStarting server on at http://${server.address.host}:${server.port}'));
 
     var stopServer = false;
     while (!stopServer) {
-      final input = ask(prefixTime(), required: false).trim();
+      stdout.write(prefixTime());
+      final String input = Console.readLine()?.trim() ?? '';
 
       if (input == 'h' || input == 'help') {
         print('Help');
@@ -166,6 +171,6 @@ class ServerCli with CommandTime {
 String prefixTime() {
   final now = DateTime.now();
   final time =
-      '[${now.hour}:${now.minute}:${now.second}:${now.millisecond.toString().padLeft(4, '0')}] :';
+      '[${now.hour}:${now.minute}:${now.second}:${now.millisecond.toString().padLeft(4, '0')}] : ';
   return grey(time);
 }
