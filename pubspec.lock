@@ -7,14 +7,14 @@ packages:
       name: _fe_analyzer_shared
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "51.0.0"
+    version: "50.0.0"
   analyzer:
     dependency: transitive
     description:
       name: analyzer
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "5.3.1"
+    version: "5.2.0"
   archive:
     dependency: "direct main"
     description:
@@ -91,7 +91,7 @@ packages:
       name: collection
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "1.17.0"
+    version: "1.16.0"
   console:
     dependency: "direct main"
     description:
@@ -204,6 +204,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.0"
+  get_ip_address:
+    dependency: "direct main"
+    description:
+      name: get_ip_address
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.0.5"
   glob:
     dependency: transitive
     description:
@@ -602,7 +609,7 @@ packages:
       name: vector_math
       url: "https://pub.dartlang.org"
     source: hosted
-    version: "2.1.4"
+    version: "2.1.2"
   vin_decoder:
     dependency: transitive
     description:
