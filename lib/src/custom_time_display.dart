@@ -14,6 +14,7 @@ class MillisecondTimeDisplay {
   void start([int place = 1]) {
     Console.adapter.echoMode = false;
     _watch = Stopwatch();
+    update(place);
     _updateTimer = Timer.periodic(Duration(milliseconds: 10), (timer) {
       update(place);
     });
