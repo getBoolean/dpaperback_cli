@@ -48,7 +48,7 @@ Global options:
 Available commands:
   bundle          Builds all the sources in the repository and generates a versioning file
   serve           Build the sources and start a local server
-  clean           Deletes the modules directory and the versioning file
+  clean           Deletes the modules directory and cached dependencies
 
 Run "dpaperback help <command>" for more information about a command.
 ```
