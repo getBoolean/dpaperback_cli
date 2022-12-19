@@ -240,7 +240,11 @@ class BundleCli with CommandTime {
     return (await Process.run(
       'npm',
       ['install', package, if (global) '-g'],
-      // workingDirectory: workingDirectory,
+      workingDirectory: workingDirectory,
+      // Must be true on windows,
+      // otherwise this exception is thrown:
+      // "The system cannot find the file specified.""
+      runInShell: Platform.isWindows,
     ))
         .exitCode;
   }
@@ -353,6 +357,10 @@ class BundleCli with CommandTime {
         output,
       ],
       workingDirectory: tempDir,
+      // Must be true on windows,
+      // otherwise this exception is thrown:
+      // "The system cannot find the file specified.""
+      runInShell: Platform.isWindows,
     ))
         .exitCode;
   }
@@ -369,6 +377,10 @@ class BundleCli with CommandTime {
     final process = await Process.run(
       'dart',
       ['compile', 'js', script, '-o', output, if (minify) '-m', '--no-source-maps'],
+      // Must be true on windows,
+      // otherwise this exception is thrown:
+      // "The system cannot find the file specified.""
+      runInShell: Platform.isWindows,
     );
     if (process.exitCode != 0) {
       printerr(yellow('Warning: Could not compile $script'));
