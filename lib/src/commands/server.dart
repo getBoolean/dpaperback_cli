@@ -122,13 +122,7 @@ class ServerCli with CommandTime {
   Future<int> run() async {
     final bundlesPath = join(output, 'bundles');
     final pipeline = const shelf.Pipeline()
-      ..addMiddleware(shelf.logRequests(logger: (message, isError) {
-        if (isError) {
-          printerr(prefixTime() + red(message));
-        } else {
-          print(prefixTime() + message);
-        }
-      }));
+      ..addMiddleware(shelf.logRequests());
     final handler = pipeline.addHandler(
       createStaticHandler(bundlesPath,
           /*defaultDocument: 'versioning.json', */ listDirectories: true),
