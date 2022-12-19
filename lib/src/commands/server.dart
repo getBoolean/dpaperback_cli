@@ -121,7 +121,14 @@ class ServerCli with CommandTime {
 
   Future<int> run() async {
     final bundlesPath = join(output, 'bundles');
-    final pipeline = const shelf.Pipeline()..addMiddleware(shelf.logRequests());
+    final pipeline = const shelf.Pipeline()
+      ..addMiddleware(shelf.logRequests(logger: (message, isError) {
+        if (isError) {
+          printerr(prefixTime() + red(message));
+        } else {
+          print(prefixTime() + message);
+        }
+      }));
     final handler = pipeline.addHandler(
       createStaticHandler(bundlesPath,
           /*defaultDocument: 'versioning.json', */ listDirectories: true),
@@ -129,24 +136,29 @@ class ServerCli with CommandTime {
     final ip = await intranetIpv4();
     // TODO: Move server onto isolate
     final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
-    print(green('\nStarting server at http://${server.address.host}:${server.port}'));
+    print(blue('\nStarting server at http://${server.address.host}:${server.port}'));
     print('\nFor a list of commands type ${green('h')} or ${green('help')}');
 
-    stdout.write(prefixTime(' : '));
-    await stdin.listen((event) async {
+    stdout.write(prefixTime(' :'));
+
+    late StreamSubscription<List<int>> subscription;
+    subscription = stdin.listen((event) async {
       final input = utf8.decode(event).trim();
 
       if (input == 'h' || input == 'help') {
-        print('Help');
+        print(blue('\nHelp'));
         print('  h, help - Display this message');
         print('  q, quit - Stops the server and quits the CLI');
-        print('  r, rebuild - Rebuilds the sources');
-      } else if (input == 'quit' || input == 'q') {
-        print('Stopping server');
+        print('  r, rebuild - Rebuilds the sources\n');
+      } else if (input == 'quit' ||
+          input == 'q' ||
+          input == 'exit' ||
+          input == 's' ||
+          input == 'stop') {
+        print('\n${blue('Stopping server...')}');
         exit(0);
       } else if (input == 'r' || input == 'restart') {
-        print(blue('Building Sources'));
-
+        subscription.pause();
         // Make sure the repo is bundled
         final exitCode = await BundleCli(
           output: output,
@@ -156,15 +168,18 @@ class ServerCli with CommandTime {
           container: container,
         ).run();
         if (exitCode != 0) {
-          print(red('Failed to build sources, stopping server...'));
+          printerr(prefixTime() + red('Failed to build sources, stopping server...'));
           exit(2);
         }
-        print(green('\nStarting server at http://${server.address.host}:${server.port}'));
+        print('\n${blue('Starting server at http://${server.address.host}:${server.port}')}');
         print('\nFor a list of commands type ${green('h')} or ${green('help')}');
+        subscription.resume();
       }
 
-      stdout.write(prefixTime(' : '));
-    }).asFuture();
+      stdout.write(prefixTime(' :'));
+    });
+
+    await subscription.asFuture();
 
     return 0;
   }
@@ -173,6 +188,6 @@ class ServerCli with CommandTime {
 String prefixTime([String separator = '']) {
   final now = DateTime.now();
   final time =
-      '[${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}:${now.millisecond.toString().padLeft(4, '0')}]$separator';
+      '[${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}:${now.millisecond.toString().padLeft(4, '0')}]$separator ';
   return grey(time);
 }
