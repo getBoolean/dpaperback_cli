@@ -13,7 +13,7 @@ const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
 const kCliPrefix = '\$SourceId\$';
 
-final browserProvider = FutureProvider((_) => ppt.puppeteer.launch());
+final browserProvider = FutureProvider.autoDispose((_) => ppt.puppeteer.launch());
 
 class Bundle extends Command<int> {
   late String output;

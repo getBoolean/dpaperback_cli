@@ -1,8 +1,9 @@
+import 'dart:async';
+import 'dart:convert';
 import 'dart:io' as io;
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:console/console.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/bundle.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
@@ -128,49 +129,50 @@ class ServerCli with CommandTime {
     final ip = await intranetIpv4();
     // TODO: Move server onto isolate
     final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
-    print(green('\nStarting server on at http://${server.address.host}:${server.port}'));
+    print(green('\nStarting server at http://${server.address.host}:${server.port}'));
+    print('\nFor a list of commands type ${green('h')} or ${green('help')}');
 
-    var stopServer = false;
-    while (!stopServer) {
-      stdout.write(prefixTime());
-      final String input = Console.readLine()?.trim() ?? '';
+    stdout.write(prefixTime(' : '));
+    await stdin.listen((event) async {
+      final input = utf8.decode(event).trim();
 
       if (input == 'h' || input == 'help') {
         print('Help');
         print('  h, help - Display this message');
-        print('  s, stop - Stop the server');
-        print('  r, restart - Restart the server, also rebuilds the sources');
-      }
-
-      if (input == 's' || input == 'stop' || input == 'exit' || input == 'quit' || input == 'q') {
-        stopServer = true;
+        print('  q, quit - Stops the server and quits the CLI');
+        print('  r, rebuild - Rebuilds the sources');
+      } else if (input == 'quit' || input == 'q') {
+        print('Stopping server');
         exit(0);
-      }
-
-      if (input == 'r' || input == 'restart') {
+      } else if (input == 'r' || input == 'restart') {
         print(blue('Building Sources'));
 
         // Make sure the repo is bundled
-        await BundleCli(
+        final exitCode = await BundleCli(
           output: output,
           target: target,
           source: source,
           commonsPackage: commonsPackage,
           container: container,
         ).run();
-        print(blue('\nStarting Server on port $server.port'));
-
-        print('\nFor a list of commands do ${green('h')} or ${green('help')}');
+        if (exitCode != 0) {
+          print(red('Failed to build sources, stopping server...'));
+          exit(2);
+        }
+        print(green('\nStarting server at http://${server.address.host}:${server.port}'));
+        print('\nFor a list of commands type ${green('h')} or ${green('help')}');
       }
-    }
+
+      stdout.write(prefixTime(' : '));
+    }).asFuture();
 
     return 0;
   }
 }
 
-String prefixTime() {
+String prefixTime([String separator = '']) {
   final now = DateTime.now();
   final time =
-      '[${now.hour}:${now.minute}:${now.second}:${now.millisecond.toString().padLeft(4, '0')}] : ';
+      '[${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}:${now.millisecond.toString().padLeft(4, '0')}]$separator';
   return grey(time);
 }
