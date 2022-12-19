@@ -1,9 +1,8 @@
 import 'dart:io' as io;
 import 'dart:io';
-import 'dart:isolate';
 
 import 'package:args/command_runner.dart';
-import 'package:async/async.dart';
+import 'package:console/console.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/bundle.dart';
 import 'package:dpaperback_cli/src/time_mixin.dart';
@@ -128,40 +127,27 @@ class ServerCli with CommandTime {
     );
     final ip = await intranetIpv4();
     // TODO: Move server onto isolate
-    final p = ReceivePort();
-    final isolate = await Isolate.spawn(_serverIsolate, p.sendPort);
-
-    // Convert the ReceivePort into a StreamQueue to receive messages from the
-    // spawned isolate using a pull-based interface. Events are stored in this
-    // queue until they are accessed by `events.next`.
-    final events = StreamQueue<dynamic>(p);
-
-    // The first message from the spawned isolate is a SendPort. This port is
-    // used to communicate with the spawned isolate.
-    final SendPort sendPort = await events.next;
-    sendPort.send({
-      'start': [handler, host ?? ip.address, port]
-    });
+    final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
+    print(green('\nStarting server on at http://${server.address.host}:${server.port}'));
 
     var stopServer = false;
     while (!stopServer) {
-      stdout.write('\n${prefixTime()} : ');
-      final String input = stdin.readLineSync()?.trim() ?? '';
+      stdout.write(prefixTime());
+      final String input = Console.readLine()?.trim() ?? '';
 
       if (input == 'h' || input == 'help') {
         print('Help');
         print('  h, help - Display this message');
         print('  s, stop - Stop the server');
         print('  r, restart - Restart the server, also rebuilds the sources');
-      } else if (input == 's' ||
-          input == 'stop' ||
-          input == 'exit' ||
-          input == 'quit' ||
-          input == 'q') {
+      }
+
+      if (input == 's' || input == 'stop' || input == 'exit' || input == 'quit' || input == 'q') {
         stopServer = true;
-        sendPort.send('stop');
-        print(blue('Stopping Server'));
-      } else if (input == 'r' || input == 'restart') {
+        exit(0);
+      }
+
+      if (input == 'r' || input == 'restart') {
         print(blue('Building Sources'));
 
         // Make sure the repo is bundled
@@ -172,9 +158,7 @@ class ServerCli with CommandTime {
           commonsPackage: commonsPackage,
           container: container,
         ).run();
-        sendPort.send({
-          'start': [handler, host ?? ip.address, port]
-        });
+        print(blue('\nStarting Server on port $server.port'));
 
         print('\nFor a list of commands do ${green('h')} or ${green('help')}');
       }
@@ -184,33 +168,9 @@ class ServerCli with CommandTime {
   }
 }
 
-void _serverIsolate(SendPort p) async {
-  HttpServer server;
-  shelf.Handler handler;
-  String address;
-  int port;
-
-  final commandPort = ReceivePort();
-  p.send(commandPort.sendPort);
-
-  await for (final message in commandPort) {
-    if (message is Map<String, dynamic> && message.containsKey('start')) {
-      handler = message['start'][0] as shelf.Handler;
-      address = message['start'][1] as String;
-      port = message['start'][2] as int;
-
-      server = await shelf_io.serve(handler, address, port);
-      print(prefixTime() +
-          green('\nStarting server on at http://${server.address.host}:${server.port}'));
-    } else if (message is String && message == 'stop') {
-      Isolate.exit();
-    }
-  }
-}
-
 String prefixTime() {
   final now = DateTime.now();
   final time =
-      '[${now.hour}:${now.minute}:${now.second}:${now.millisecond.toString().padLeft(4, '0')}] ';
+      '[${now.hour}:${now.minute}:${now.second}:${now.millisecond.toString().padLeft(4, '0')}] : ';
   return grey(time);
 }
