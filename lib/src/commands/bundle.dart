@@ -109,6 +109,7 @@ class BundleCli with CommandTime {
   Future<int> run() async {
     final executionTimer = Stopwatch()..start();
     futureBrowser = container.read(browserProvider.future);
+    print('');
     final successCode = await bundleSources();
     if (successCode != 0) {
       return successCode;
@@ -116,12 +117,12 @@ class BundleCli with CommandTime {
     await createVersioningFile();
     generateHomepage();
     executionTimer.stop();
-    print((blue('Execution time: ${executionTimer.elapsedMilliseconds}ms', bold: true)));
+    print((blue('Total Execution time: ${executionTimer.elapsedMilliseconds}ms', bold: true)));
     return 0;
   }
 
   Future<void> createVersioningFile() async {
-    final verionTimer = Stopwatch()..start();
+    final versionTimer = Stopwatch()..start();
 
     final versioningFileMap = {
       'buildTime': DateTime.now().toUtc().toIso8601String(),
@@ -164,7 +165,7 @@ class BundleCli with CommandTime {
     unawaited(browser.close());
     final versioningFileContents = jsonEncode(versioningFileMap);
     await File(join(bundlesPath, 'versioning.json')).writeAsString(versioningFileContents);
-    print((blue('Versioning File: ${verionTimer.elapsedMilliseconds}ms', bold: true)));
+    print((blue('Total Versioning File: ${versionTimer.elapsedMilliseconds}ms', bold: true)));
   }
 
   Future<Map<String, dynamic>> generateSourceInfo(
@@ -226,7 +227,7 @@ class BundleCli with CommandTime {
   }
 
   void generateHomepage() {
-    final homepageTimer = time(prefix: 'Homepage Generation');
+    final homepageTimer = time(prefix: 'Total Homepage Generation');
 
     stopTimer(homepageTimer);
   }
