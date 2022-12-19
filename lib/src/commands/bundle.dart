@@ -240,7 +240,7 @@ class BundleCli with CommandTime {
     return (await Process.run(
       'npm',
       ['install', package, if (global) '-g'],
-      workingDirectory: workingDirectory,
+      // workingDirectory: workingDirectory,
     ))
         .exitCode;
   }
