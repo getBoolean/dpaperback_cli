@@ -516,6 +516,12 @@ class BundleCli with CommandTime {
       printerr(red('Skipping homepage generation\n'));
       return 2;
     }
+    if (!await File(pugPath).exists()) {
+      stop();
+      printerr(red('Warning: Could not pug at "$pugPath"'));
+      printerr(red('Skipping homepage generation\n'));
+      return 2;
+    }
     final result = await runPugCompile(optionsFile.path, pugPath: pugPath);
     await optionsFile.delete();
     if (result.exitCode != 0) {
