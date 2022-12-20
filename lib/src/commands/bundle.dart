@@ -503,7 +503,10 @@ class BundleCli with CommandTime {
       printerr(pugResult.stderr);
       return pugResult.exitCode;
     }
-    final result = await runPugCompile(repositoryData, pugPath: pugPath);
+    final optionsFile = File(join(cacheDir, 'options.json'));
+    await optionsFile.writeAsString(json.encode(repositoryData));
+    final result = await runPugCompile(optionsFile.path, pugPath: pugPath);
+    await optionsFile.delete();
     if (result.exitCode != 0) {
       stop();
       printerr(red('\nError: Could not compile html'));
@@ -523,10 +526,10 @@ class BundleCli with CommandTime {
   /// The compiled js file will be saved to [pugPath].
   ///
   /// Returns the exit code of the process.
-  Future<ProcessResult> runPugCompile(Map<String, dynamic> data, {required String pugPath}) async {
+  Future<ProcessResult> runPugCompile(String optionsFile, {required String pugPath}) async {
     final process = await Process.run(
       'pug',
-      ['-o', join(output, 'bundles'), '-O', json.encode(data), '-D', pugPath],
+      ['-o', join(output, 'bundles'), '-O', optionsFile, '-D', pugPath],
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified."
