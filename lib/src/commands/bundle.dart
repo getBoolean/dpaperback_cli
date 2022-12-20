@@ -446,8 +446,8 @@ class BundleCli with CommandTime {
     time(prefix: 'Total Homepage Generation');
 
     // Read versioning.json file
-    final Map<String, dynamic> extensionsData =
-        json.decode(await File(join(output, 'bundles', subfolder, 'versioning.json')).readAsString());
+    final Map<String, dynamic> extensionsData = json
+        .decode(await File(join(output, 'bundles', subfolder, 'versioning.json')).readAsString());
     final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
 
     final List<dynamic> sources = extensionsData['sources'];
@@ -486,17 +486,19 @@ class BundleCli with CommandTime {
     if (baseURL != null) {
       repositoryData['baseURL'] = baseURL;
     } else {
-      final githubRepositoryEnvironmentVariable = String.fromEnvironment('GITHUB_REPOSITORY');
-      if (githubRepositoryEnvironmentVariable == '') {
+      final githubRepositoryEnvironmentVariable = bool.hasEnvironment('GITHUB_REPOSITORY')
+          ? String.fromEnvironment('GITHUB_REPOSITORY')
+          : null;
+      if (githubRepositoryEnvironmentVariable == null) {
         // If it's not possible to determine the baseURL, using noAddToPaperbackButton will mask the field from the homepage
         // The repository can force noAddToPaperbackButton to false by adding the field to package.json
         repositoryData['baseURL'] = null;
         repositoryData['noAddToPaperbackButton'] = true;
       } else {
         final split = githubRepositoryEnvironmentVariable.toLowerCase().split('/');
-        // The capitalization of folder is important, using folder.toLowerCase() make a non working link
+        // The capitalization of folder is important, using subfolder.toLowerCase() make a non working link
         repositoryData['baseURL'] =
-            'https://${split[0]}.github.io/${split[1]}${(subfolder == '') ? '' : '/$subfolder'}';
+            'https://${split[0]}.github.io/${split[1]}${(subfolder == null || subfolder == '') ? '' : '/$subfolder'}';
       }
     }
 
@@ -566,7 +568,8 @@ class BundleCli with CommandTime {
       return 1;
     }
 
-    final tempIndex = File(join(output, 'bundles', subfolder, '${basenameWithoutExtension(pugPath)}.html'));
+    final tempIndex =
+        File(join(output, 'bundles', subfolder, '${basenameWithoutExtension(pugPath)}.html'));
     await tempIndex.rename(join(output, 'bundles', subfolder, 'index.html'));
 
     stop();
