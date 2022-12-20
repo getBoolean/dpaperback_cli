@@ -244,6 +244,9 @@ class BundleCli with CommandTime {
 
     final directoryPath = join(tempBuildPath, source);
     final targetDirPath = join(bundlesPath, source);
+    if (!await Directory(targetDirPath).exists()) {
+      await Directory(targetDirPath).create(recursive: true);
+    }
 
     // TODO: Make async
     copyTree(directoryPath, targetDirPath, overwrite: true);
