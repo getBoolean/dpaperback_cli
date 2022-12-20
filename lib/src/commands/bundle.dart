@@ -544,15 +544,21 @@ class BundleCli with CommandTime {
   ///
   /// Returns the exit code of the process.
   Future<ProcessResult> runPugCompile(String optionsFile, {required String pugPath}) async {
+    final dir = createTempDir();
+    final bundlesDir = join(output, 'bundles');
+    if (!await Directory(bundlesDir).exists()) {
+      await Directory(bundlesDir).create(recursive: true);
+    }
     final process = await Process.run(
       'pug',
-      ['-o', join(output, 'bundles'), '-O', optionsFile, '-D', pugPath],
+      ['-o', bundlesDir, '-O', optionsFile, '-D', pugPath],
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified."
       runInShell: Platform.isWindows,
-      workingDirectory: pwd,
+      workingDirectory: dir,
     );
+    await Directory(dir).delete(recursive: true);
 
     return process;
   }
