@@ -562,7 +562,7 @@ class BundleCli with CommandTime {
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified."
-      runInShell: Platform.isWindows,
+      runInShell: true,
       workingDirectory: dir,
     );
     await Directory(dir).delete(recursive: true);
