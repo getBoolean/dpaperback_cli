@@ -492,7 +492,6 @@ class BundleCli with CommandTime {
       if (githubRepositoryEnvironmentVariable == null) {
         // If it's not possible to determine the baseURL, using noAddToPaperbackButton will mask the field from the homepage
         // The repository can force noAddToPaperbackButton to false by adding the field to package.json
-        repositoryData['baseURL'] = null;
         repositoryData['noAddToPaperbackButton'] = true;
       } else {
         final split = githubRepositoryEnvironmentVariable.toLowerCase().split('/');
