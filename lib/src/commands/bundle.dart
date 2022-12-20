@@ -24,7 +24,7 @@ class Bundle extends Command<int> {
 
   Bundle([ProviderContainer? container]) : container = container ?? ProviderContainer() {
     argParser
-      ..addSeparator('Flags:')
+      ..addSeparator('Options:')
       ..addOption('output',
           abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
       ..addOption('target',
@@ -32,7 +32,7 @@ class Bundle extends Command<int> {
       ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
       ..addOption('subfolder',
           abbr: 'f',
-          help: 'The subfolder the generated sources generated will be at.',
+          help: 'The subfolder under "bundles" folder the generated sources will be built at.',
           valueHelp: 'folder')
       ..addOption(
         'paperback-extensions-common',
@@ -132,7 +132,7 @@ class BundleCli with CommandTime {
     required this.commonsPackage,
     required this.container,
     required this.pubspecPath,
-    this.subfolder,
+    required this.subfolder,
   });
 
   Future<int> run() async {

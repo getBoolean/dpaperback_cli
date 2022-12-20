@@ -25,6 +25,12 @@ class Server extends Command<int> {
       ..addFlag('hot-restart', negatable: true, help: 'Rebuild sources on save', defaultsTo: true)
       ..addFlag('hide-ip-address',
           help: 'Hide the ip address when the server starts', negatable: false)
+      ..addSeparator('Options:')
+      ..addOption('subfolder',
+          abbr: 'f',
+          help:
+              'The subfolder under "bundles" folder the generated sources will be built at and served from.',
+          valueHelp: 'folder')
       ..addOption('hot-restart-throttle',
           defaultsTo: '10000',
           abbr: 'd',
@@ -77,6 +83,7 @@ class Server extends Command<int> {
     final enableHotRestart = results['hot-restart'] as bool;
     final hotRestartThrottleMilliseconds = int.tryParse(results['hot-restart-throttle'] as String);
     final hideIpAddress = results['hide-ip-address'] as bool;
+    final subfolder = results['subfolder'] as String?;
     if (hotRestartThrottleMilliseconds == null || hotRestartThrottleMilliseconds < 1000) {
       printerr(red('Invalid hot restart throttle value. Must be 1000 or greater'));
       return 2;
@@ -89,6 +96,7 @@ class Server extends Command<int> {
         target: target,
         source: source,
         commonsPackage: commonsPackage,
+        subfolder: subfolder,
         container: container,
         pubspecPath: pubspecPath,
       ).run();
@@ -105,6 +113,7 @@ class Server extends Command<int> {
       container: container,
       hideIpAddress: hideIpAddress,
       pubspecPath: pubspecPath,
+      subfolder: subfolder,
     ).run();
 
     return successCode;
@@ -155,6 +164,7 @@ class ServerCli with CommandTime {
   final int hotRestartThrottleMilliseconds;
   final bool hideIpAddress;
   final String pubspecPath;
+  final String? subfolder;
 
   ServerCli({
     required this.output,
@@ -168,6 +178,7 @@ class ServerCli with CommandTime {
     required this.enableHotRestart,
     required this.hotRestartThrottleMilliseconds,
     required this.hideIpAddress,
+    required this.subfolder,
   });
 
   Future<int> run() async {
@@ -177,11 +188,14 @@ class ServerCli with CommandTime {
       return 1;
     }
 
-    final bundlesPath = join(output, 'bundles');
+    final bundlesPath = join(output, 'bundles', subfolder);
     final pipeline = const shelf.Pipeline()..addMiddleware(shelf.logRequests());
     final handler = pipeline.addHandler(
-      createStaticHandler(bundlesPath,
-          /*defaultDocument: 'versioning.json', */ listDirectories: true),
+      createStaticHandler(
+        bundlesPath,
+        defaultDocument: 'index.html',
+        listDirectories: false,
+      ),
     );
     final ip = await intranetIpv4();
     final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
@@ -238,6 +252,7 @@ class ServerCli with CommandTime {
       commonsPackage: commonsPackage,
       container: container,
       pubspecPath: pubspecPath,
+      subfolder: subfolder,
     ).run();
     if (exitCode != 0) {
       printerr(prefixTime() + red('Failed to build sources, stopping server...'));
