@@ -510,7 +510,7 @@ class BundleCli with CommandTime {
 
     await optionsFile.writeAsString(json.encode(repositoryData), flush: true);
 
-    if (await optionsFile.exists()) {
+    if (!await optionsFile.exists()) {
       stop();
       printerr(red('Warning: Could not find options.json'));
       printerr(red('Skipping homepage generation\n'));
