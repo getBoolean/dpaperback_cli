@@ -3,7 +3,7 @@
 Status: **In Development**
 
 A commandline tool for bundling and serving Dart Paperback extensions
-using `dart_pb_extensions_common`
+using [dart_pb_extensions_common](https://github.com/getBoolean/dart_pb_extensions_common)
 
 ## Getting Started
 
@@ -13,7 +13,7 @@ The Dart global scripts directory should also be added to your path, following
 Once added to PATH, the `dpaperback` command can be used.
 
 ```bash
-dart pub global activate https://github.com/getBoolean/dart_pb_cli
+dart pub global activate https://github.com/getBoolean/dpaperback_cli -s git
 
 # Or alternatively to specify a specific version (once published):
 # pub global activate dpaperback_cli 0.4.1
