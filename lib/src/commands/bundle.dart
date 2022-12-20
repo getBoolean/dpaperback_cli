@@ -516,7 +516,7 @@ class BundleCli with CommandTime {
     return 0;
   }
 
-  /// The compiled js file will be saved to [output].
+  /// The compiled js file will be saved to [pugPath].
   ///
   /// Returns the exit code of the process.
   Future<ProcessResult> runPugCompile(Map<String, dynamic> data, {required String pugPath}) async {
