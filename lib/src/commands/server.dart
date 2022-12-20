@@ -120,9 +120,13 @@ class ServerCli with CommandTime {
   });
 
   Future<int> run() async {
+    if (!stdin.hasTerminal) {
+      printerr(red('This command requires a terminal'));
+      return 1;
+    }
+
     final bundlesPath = join(output, 'bundles');
-    final pipeline = const shelf.Pipeline()
-      ..addMiddleware(shelf.logRequests());
+    final pipeline = const shelf.Pipeline()..addMiddleware(shelf.logRequests());
     final handler = pipeline.addHandler(
       createStaticHandler(bundlesPath,
           /*defaultDocument: 'versioning.json', */ listDirectories: true),
