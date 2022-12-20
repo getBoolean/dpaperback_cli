@@ -161,7 +161,6 @@ class ServerCli with CommandTime {
           /*defaultDocument: 'versioning.json', */ listDirectories: true),
     );
     final ip = await intranetIpv4();
-    // TODO: Move server onto isolate
     final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
     printServerStarted(server);
 
