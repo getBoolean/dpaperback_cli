@@ -504,7 +504,7 @@ class BundleCli with CommandTime {
       return pugResult.exitCode;
     }
     final optionsFile = File(join(cacheDir, 'options.json'));
-    await optionsFile.writeAsString(json.encode(repositoryData));
+    await optionsFile.writeAsString(json.encode(repositoryData), flush: true);
     final result = await runPugCompile(optionsFile.path, pugPath: pugPath);
     await optionsFile.delete();
     if (result.exitCode != 0) {
@@ -534,6 +534,7 @@ class BundleCli with CommandTime {
       // otherwise this exception is thrown:
       // "The system cannot find the file specified."
       runInShell: Platform.isWindows,
+      workingDirectory: pwd,
     );
 
     return process;
