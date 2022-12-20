@@ -58,3 +58,4 @@ Run "dpaperback help <command>" for more information about a command.
 - Dart 2.18.6 or higher on the path
 - Node 14.0.0 or higher on the path
 - Browserify 17.0.0 or higher installed globally `npm install -g browserify`
+- Pug-CLI 1.0.0-alpha6 or higher installed globally `npm install -g pug-cli`
