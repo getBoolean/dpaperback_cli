@@ -505,6 +505,13 @@ class BundleCli with CommandTime {
     }
     final optionsFile = File(join(cacheDir, 'options.json'));
     await optionsFile.writeAsString(json.encode(repositoryData), flush: true);
+
+    if (await optionsFile.exists()) {
+      stop();
+      printerr(red('Warning: Could not find options.json'));
+      printerr(red('Skipping homepage generation\n'));
+      return 1;
+    }
     final result = await runPugCompile(optionsFile.path, pugPath: pugPath);
     await optionsFile.delete();
     if (result.exitCode != 0) {
