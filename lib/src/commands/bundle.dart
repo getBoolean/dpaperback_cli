@@ -129,9 +129,9 @@ class BundleCli with CommandTime {
       'sources': [],
     };
 
-    final puppeteerTimer = time(prefix: 'Launching puppeteer');
+    time(prefix: 'Launching puppeteer');
     final browser = await futureBrowser;
-    stopTimer(puppeteerTimer);
+    stop();
     final bundlesPath = join(output, 'bundles');
     // TODO: Make async FileSystemEntity.isDirectorySync
     final directories = await Directory(bundlesPath)
@@ -142,12 +142,12 @@ class BundleCli with CommandTime {
     for (final dir in directories) {
       final source = basename(dir);
       try {
-        final timer = time(prefix: '- Generating $source Info');
+        time(prefix: '- Generating $source Info');
         final sourceInfo = await generateSourceInfo(browser, source, bundlesPath);
         final sourceId = sourceInfo['id'];
         Directory(dir).renameSync(join(dirname(dir), sourceId));
         (versioningFileMap['sources']! as List).add(sourceInfo);
-        stopTimer(timer);
+        stop();
       } on FileNotFoundException {
         printerr(yellow('Skipping "$source", source.js not found'));
         continue;
@@ -227,9 +227,9 @@ class BundleCli with CommandTime {
   }
 
   void generateHomepage() {
-    final homepageTimer = time(prefix: 'Total Homepage Generation');
+    time(prefix: 'Total Homepage Generation');
 
-    stopTimer(homepageTimer);
+    stop();
   }
 
   /// Installs paperback-extensions-common from npmjs.org
@@ -254,15 +254,15 @@ class BundleCli with CommandTime {
     // Download paperback-extensions-common from npmjs.org
     final minifiedLib = join(output, 'bundles', kMinifiedLibrary);
     if (!await File(minifiedLib).exists()) {
-      final timer = time(prefix: 'Downloading dependencies');
+      time(prefix: 'Downloading dependencies');
       final successCode = await _bundleJsDependencies(minifiedLib);
-      stopTimer(timer);
+      stop();
       if (successCode != 0) {
         return successCode;
       }
     }
 
-    final compileTime = time(prefix: 'Compiling project');
+    time(prefix: 'Compiling project');
 
     // TODO: Make async
     final sources = source != null
@@ -312,7 +312,7 @@ class BundleCli with CommandTime {
       }
     }
 
-    stopTimer(compileTime);
+    stop();
     return 0;
   }
 
