@@ -12,13 +12,21 @@ import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart' as shelf;
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_static/shelf_static.dart';
+import 'package:stream_transform/stream_transform.dart';
+import 'package:watcher/watcher.dart';
 
 class Server extends Command<int> {
   final ProviderContainer container;
   Server([ProviderContainer? container]) : container = container ?? ProviderContainer() {
     argParser
       ..addSeparator('Flags:')
-      ..addFlag('skip-bundle', defaultsTo: false)
+      ..addFlag('skip-bundle',
+          defaultsTo: false, help: 'Skip bundling the sources when first starting')
+      ..addFlag('hot-restart', negatable: true, help: 'Rebuild sources on save', defaultsTo: true)
+      ..addOption('hot-restart-throttle',
+          defaultsTo: '10000',
+          help:
+              'Amount of Time (in milliseconds) after a hot restart before the next hot restart can occur.')
       ..addOption('output',
           abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
       ..addOption('target',
@@ -55,6 +63,13 @@ class Server extends Command<int> {
     final int port = int.parse(results['port']);
     final String? host = results['host'];
     final source = results['source'];
+    final enableHotRestart = results['hot-restart'] as bool;
+    final hotRestartThrottleMilliseconds = int.tryParse(results['hot-restart-throttle'] as String);
+    if (hotRestartThrottleMilliseconds == null || hotRestartThrottleMilliseconds < 1000) {
+      printerr(red('Invalid hot restart throttle value. Must be 1000 or greater'));
+      return 2;
+    }
+
     final skipBundle = results['skip-bundle'] as bool;
     if (!skipBundle) {
       await BundleCli(
@@ -66,6 +81,8 @@ class Server extends Command<int> {
       ).run();
     }
     final successCode = ServerCli(
+      enableHotRestart: enableHotRestart,
+      hotRestartThrottleMilliseconds: hotRestartThrottleMilliseconds,
       output: output,
       target: target,
       source: source,
@@ -108,6 +125,8 @@ class ServerCli with CommandTime {
   final int port;
   final String? host;
   final ProviderContainer container;
+  final bool enableHotRestart;
+  final int hotRestartThrottleMilliseconds;
 
   ServerCli({
     required this.output,
@@ -117,11 +136,14 @@ class ServerCli with CommandTime {
     required this.host,
     required this.commonsPackage,
     required this.container,
+    required this.enableHotRestart,
+    required this.hotRestartThrottleMilliseconds,
   });
 
   Future<int> run() async {
     if (!stdin.hasTerminal) {
-      printerr(red('This command requires a terminal. It cannot be run from CI such as GitHub Actions.'));
+      printerr(red(
+          'This command requires a terminal. It cannot be run from CI such as GitHub Actions.'));
       return 1;
     }
 
@@ -156,30 +178,45 @@ class ServerCli with CommandTime {
         print('\n${blue('Stopping server...')}');
         exit(0);
       } else if (input == 'r' || input == 'restart') {
-        subscription.pause();
-        // Make sure the repo is bundled
-        final exitCode = await BundleCli(
-          output: output,
-          target: target,
-          source: source,
-          commonsPackage: commonsPackage,
-          container: container,
-        ).run();
-        if (exitCode != 0) {
-          printerr(prefixTime() + red('Failed to build sources, stopping server...'));
-          exit(2);
-        }
-        print('\n${blue('Starting server at http://${server.address.host}:${server.port}')}');
-        print('\nFor a list of commands type ${green('h')} or ${green('help')}');
-        subscription.resume();
+        await rebuildSources(subscription, server);
       }
 
       stdout.write(prefixTime(' :'));
     });
 
+    if (enableHotRestart) {
+      Watcher(join(target, source))
+          .events
+          .throttle(Duration(milliseconds: hotRestartThrottleMilliseconds))
+          .listen((_) async {
+        await rebuildSources(subscription, server);
+        stdout.write(prefixTime(' :'));
+      });
+    }
+
     await subscription.asFuture();
 
     return 0;
+  }
+
+  Future<void> rebuildSources(
+      StreamSubscription<List<int>> subscription, io.HttpServer server) async {
+    subscription.pause();
+    // Make sure the repo is bundled
+    final exitCode = await BundleCli(
+      output: output,
+      target: target,
+      source: source,
+      commonsPackage: commonsPackage,
+      container: container,
+    ).run();
+    if (exitCode != 0) {
+      printerr(prefixTime() + red('Failed to build sources, stopping server...'));
+      exit(2);
+    }
+    print('\n${blue('Starting server at http://${server.address.host}:${server.port}')}');
+    print('\nFor a list of commands type ${green('h')} or ${green('help')}');
+    subscription.resume();
   }
 }
 

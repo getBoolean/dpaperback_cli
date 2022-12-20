@@ -24,6 +24,8 @@ dependencies:
   riverpod: ^2.1.1
   shelf: ^1.4.0
   shelf_static: ^1.1.1
+  stream_transform: ^2.1.0
+  watcher: ^1.0.2
 
 dev_dependencies:
   lints: ^2.0.0
