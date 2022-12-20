@@ -514,7 +514,7 @@ class BundleCli with CommandTime {
       stop();
       printerr(red('Warning: Could not find options.json'));
       printerr(red('Skipping homepage generation\n'));
-      return 1;
+      return 2;
     }
     final result = await runPugCompile(optionsFile.path, pugPath: pugPath);
     await optionsFile.delete();
