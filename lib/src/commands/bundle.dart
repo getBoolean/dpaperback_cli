@@ -14,6 +14,7 @@ import 'package:yaml/yaml.dart';
 
 const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
+const kPugPackage = 'pug-cli@^1.0.0-alpha6';
 const kCliPrefix = '\$SourceId\$';
 
 final browserProvider = FutureProvider.autoDispose((_) => ppt.puppeteer.launch());
@@ -252,12 +253,12 @@ class BundleCli with CommandTime {
   }
 
   /// Installs paperback-extensions-common from npmjs.org
-  Future<int> installJsPackage(
+  Future<ProcessResult> installJsPackage(
     String package, {
     required String workingDirectory,
     bool global = false,
   }) async {
-    return (await Process.run(
+    return await Process.run(
       'npm',
       ['install', package, if (global) '-g'],
       workingDirectory: workingDirectory,
@@ -265,8 +266,7 @@ class BundleCli with CommandTime {
       // otherwise this exception is thrown:
       // "The system cannot find the file specified.""
       runInShell: Platform.isWindows,
-    ))
-        .exitCode;
+    );
   }
 
   Future<int> _compileSources(String tempBuildPath) async {
@@ -341,17 +341,16 @@ class BundleCli with CommandTime {
   Future<int> _bundleJsDependencies(String outputFile) async {
     // TODO: make async
     final commonsTempDir = createTempDir();
-    final commonSuccessCode =
-        await installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
-    if (commonSuccessCode != 0) {
+    final commonResult = await installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
+    if (commonResult.exitCode != 0) {
       await Directory(commonsTempDir).delete(recursive: true);
-      return commonSuccessCode;
+      return commonResult.exitCode;
     }
-    final browserifySuccessCode =
+    final browserifyResult =
         await installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
-    if (browserifySuccessCode != 0) {
+    if (browserifyResult.exitCode != 0) {
       await Directory(commonsTempDir).delete(recursive: true);
-      return browserifySuccessCode;
+      return browserifyResult.exitCode;
     }
     if (!exists(dirname(outputFile))) {
       await Directory(dirname(outputFile)).create(recursive: true);
@@ -493,8 +492,16 @@ class BundleCli with CommandTime {
       await pugResource.unpackAsync(pugPath);
     }
 
+    final pugResult = await installJsPackage(kPugPackage, global: true, workingDirectory: pwd);
+    if (pugResult.exitCode != 0) {
+      stop();
+      printerr(red('\nError: Could not install pug-cli'));
+      printerr(pugResult.stdout);
+      printerr(pugResult.stderr);
+      return pugResult.exitCode;
+    }
     final result = await runPugCompile(repositoryData, pugPath: pugPath);
-    
+
     if (result.exitCode != 0) {
       stop();
       printerr(red('\nError: Could not compile html'));
