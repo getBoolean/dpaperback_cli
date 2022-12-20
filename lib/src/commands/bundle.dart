@@ -33,7 +33,6 @@ class Bundle extends Command<int> {
       ..addOption('subfolder',
           abbr: 'f',
           help: 'The subfolder the generated sources generated will be at.',
-          defaultsTo: '',
           valueHelp: 'folder')
       ..addOption(
         'paperback-extensions-common',
@@ -79,7 +78,7 @@ class Bundle extends Command<int> {
       commonsPackage: commonsPackage,
       container: container,
       pubspecPath: pubspecPath,
-      subfolder: results['subfolder'] as String,
+      subfolder: results['subfolder'] as String?,
     ).run();
   }
 
@@ -123,7 +122,7 @@ class BundleCli with CommandTime {
   final String commonsPackage;
   final ProviderContainer container;
   final String pubspecPath;
-  final String subfolder;
+  final String? subfolder;
   late Future<Browser> futureBrowser;
 
   BundleCli({
@@ -133,7 +132,7 @@ class BundleCli with CommandTime {
     required this.commonsPackage,
     required this.container,
     required this.pubspecPath,
-    this.subfolder = '',
+    this.subfolder,
   });
 
   Future<int> run() async {
@@ -166,7 +165,7 @@ class BundleCli with CommandTime {
     time(prefix: 'Launching puppeteer');
     final browser = await futureBrowser;
     stop();
-    final bundlesPath = join(output, 'bundles');
+    final bundlesPath = join(output, 'bundles', subfolder);
     // TODO: Make async FileSystemEntity.isDirectorySync
     final directories = await Directory(bundlesPath)
         .list()
@@ -242,7 +241,7 @@ class BundleCli with CommandTime {
     }
 
     final baseBundlesPath = join(output, 'bundles');
-    final bundlesPath = join(baseBundlesPath, source);
+    final bundlesPath = join(baseBundlesPath, subfolder, source);
     if (source != null) {
       if (await Directory(bundlesPath).exists()) {
         await Directory(bundlesPath).delete(recursive: true);
@@ -251,7 +250,7 @@ class BundleCli with CommandTime {
     }
 
     final directoryPath = join(tempBuildPath, source);
-    final targetDirPath = join(bundlesPath, source);
+    final targetDirPath = bundlesPath;
     if (!await Directory(targetDirPath).exists()) {
       await Directory(targetDirPath).create(recursive: true);
     }
@@ -448,7 +447,7 @@ class BundleCli with CommandTime {
 
     // Read versioning.json file
     final Map<String, dynamic> extensionsData =
-        json.decode(await File(join(output, 'bundles', 'versioning.json')).readAsString());
+        json.decode(await File(join(output, 'bundles', subfolder, 'versioning.json')).readAsString());
     final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
 
     final List<dynamic> sources = extensionsData['sources'];
@@ -567,8 +566,8 @@ class BundleCli with CommandTime {
       return 1;
     }
 
-    final tempIndex = File(join(output, 'bundles', '${basenameWithoutExtension(pugPath)}.html'));
-    await tempIndex.rename(join(output, 'bundles', 'index.html'));
+    final tempIndex = File(join(output, 'bundles', subfolder, '${basenameWithoutExtension(pugPath)}.html'));
+    await tempIndex.rename(join(output, 'bundles', subfolder, 'index.html'));
 
     stop();
     return 0;
@@ -579,7 +578,7 @@ class BundleCli with CommandTime {
   /// Returns the exit code of the process.
   Future<ProcessResult> runPugCompile(String optionsFile, {required String pugPath}) async {
     final dir = createTempDir();
-    final bundlesDir = join(output, 'bundles');
+    final bundlesDir = join(output, 'bundles', subfolder);
     if (!await Directory(bundlesDir).exists()) {
       await Directory(bundlesDir).create(recursive: true);
     }
