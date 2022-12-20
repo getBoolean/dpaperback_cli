@@ -121,7 +121,7 @@ class ServerCli with CommandTime {
 
   Future<int> run() async {
     if (!stdin.hasTerminal) {
-      printerr(red('This command requires a terminal'));
+      printerr(red('This command requires a terminal. It cannot be run from CI such as GitHub Actions.'));
       return 1;
     }
 
