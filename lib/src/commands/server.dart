@@ -44,7 +44,14 @@ class Server extends Command<int> {
       )
       ..addOption('ip', valueHelp: 'value')
       ..addOption('port', abbr: 'p', defaultsTo: '8080', valueHelp: 'value')
-      ..addOption('host', valueHelp: 'ip-address', help: 'Override the host address');
+      ..addOption('host', valueHelp: 'ip-address', help: 'Override the host address')
+      ..addOption(
+        'pubspec',
+        abbr: 'P',
+        help: 'The path to the pubspec.yaml',
+        valueHelp: 'file-path',
+        defaultsTo: './pubspec.yaml',
+      );
   }
   @override
   String get description => 'Build the sources and start a local server';
@@ -66,6 +73,7 @@ class Server extends Command<int> {
     final int port = int.parse(results['port']);
     final String? host = results['host'];
     final source = results['source'];
+    final pubspecPath = parsePubspecPath(results);
     final enableHotRestart = results['hot-restart'] as bool;
     final hotRestartThrottleMilliseconds = int.tryParse(results['hot-restart-throttle'] as String);
     final hideIpAddress = results['hide-ip-address'] as bool;
@@ -82,6 +90,7 @@ class Server extends Command<int> {
         source: source,
         commonsPackage: commonsPackage,
         container: container,
+        pubspecPath: pubspecPath,
       ).run();
     }
     final successCode = ServerCli(
@@ -95,6 +104,7 @@ class Server extends Command<int> {
       commonsPackage: commonsPackage,
       container: container,
       hideIpAddress: hideIpAddress,
+      pubspecPath: pubspecPath,
     ).run();
 
     return successCode;
@@ -109,6 +119,17 @@ class Server extends Command<int> {
     }
 
     return targetPath;
+  }
+
+  String parsePubspecPath(ArgResults command) {
+    final pubspecArgument = command['pubspec'] as String;
+    final pubspecPath = canonicalize(pubspecArgument);
+    if (!exists(pubspecPath)) {
+      print(red('The pubspec file "$pubspecArgument" could not be found'));
+      exit(2);
+    }
+
+    return pubspecPath;
   }
 
   Future<String> parseOutputPath(ArgResults command) async {
@@ -133,11 +154,13 @@ class ServerCli with CommandTime {
   final bool enableHotRestart;
   final int hotRestartThrottleMilliseconds;
   final bool hideIpAddress;
+  final String pubspecPath;
 
   ServerCli({
     required this.output,
     required this.target,
     this.source,
+    required this.pubspecPath,
     required this.port,
     required this.host,
     required this.commonsPackage,
@@ -214,6 +237,7 @@ class ServerCli with CommandTime {
       source: source,
       commonsPackage: commonsPackage,
       container: container,
+      pubspecPath: pubspecPath,
     ).run();
     if (exitCode != 0) {
       printerr(prefixTime() + red('Failed to build sources, stopping server...'));

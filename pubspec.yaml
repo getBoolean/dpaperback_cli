@@ -26,6 +26,7 @@ dependencies:
   shelf_static: ^1.1.1
   stream_transform: ^2.1.0
   watcher: ^1.0.2
+  yaml: ^3.1.1
 
 dev_dependencies:
   lints: ^2.0.0

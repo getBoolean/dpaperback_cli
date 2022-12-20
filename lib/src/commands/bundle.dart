@@ -8,6 +8,7 @@ import 'package:dpaperback_cli/src/time_mixin.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
 import 'package:puppeteer/puppeteer.dart';
 import 'package:riverpod/riverpod.dart';
+import 'package:yaml/yaml.dart';
 
 const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
@@ -16,10 +17,6 @@ const kCliPrefix = '\$SourceId\$';
 final browserProvider = FutureProvider.autoDispose((_) => ppt.puppeteer.launch());
 
 class Bundle extends Command<int> {
-  late String output;
-  late String target;
-  late String? source;
-  late String commonsPackage;
   final ProviderContainer container;
 
   Bundle([ProviderContainer? container]) : container = container ?? ProviderContainer() {
@@ -36,6 +33,13 @@ class Bundle extends Command<int> {
         help: 'The Paperback Extensions Common Package and Version',
         valueHelp: ':package@:version',
         defaultsTo: kDefaultPaperbackExtensionsCommon,
+      )
+      ..addOption(
+        'pubspec',
+        abbr: 'P',
+        help: 'The path to the pubspec.yaml',
+        valueHelp: 'file-path',
+        defaultsTo: './pubspec.yaml',
       );
   }
 
@@ -54,10 +58,11 @@ class Bundle extends Command<int> {
     final results = argResults;
     if (results == null) return 1;
 
-    output = await parseOutputPath(results);
-    target = parseTargetPath(results);
-    source = results['source'] as String?;
-    commonsPackage = results['paperback-extensions-common'] as String;
+    final output = await parseOutputPath(results);
+    final target = parseTargetPath(results);
+    final pubspecPath = parsePubspecPath(results);
+    final source = results['source'] as String?;
+    final commonsPackage = results['paperback-extensions-common'] as String;
 
     return BundleCli(
       output: output,
@@ -65,7 +70,19 @@ class Bundle extends Command<int> {
       source: source,
       commonsPackage: commonsPackage,
       container: container,
+      pubspecPath: pubspecPath,
     ).run();
+  }
+
+  String parsePubspecPath(ArgResults command) {
+    final pubspecArgument = command['pubspec'] as String;
+    final pubspecPath = canonicalize(pubspecArgument);
+    if (!exists(pubspecPath)) {
+      print(red('The pubspec file "$pubspecArgument" could not be found'));
+      exit(2);
+    }
+
+    return pubspecPath;
   }
 
   String parseTargetPath(ArgResults command) {
@@ -96,6 +113,7 @@ class BundleCli with CommandTime {
   final String? source;
   final String commonsPackage;
   final ProviderContainer container;
+  final String pubspecPath;
   late Future<Browser> futureBrowser;
 
   BundleCli({
@@ -104,6 +122,7 @@ class BundleCli with CommandTime {
     this.source,
     required this.commonsPackage,
     required this.container,
+    required this.pubspecPath,
   });
 
   Future<int> run() async {
@@ -115,7 +134,7 @@ class BundleCli with CommandTime {
       return successCode;
     }
     await createVersioningFile();
-    generateHomepage();
+    await generateHomepage();
     executionTimer.stop();
     print((blue('Total Execution time: ${executionTimer.elapsedMilliseconds}ms', bold: true)));
     return 0;
@@ -224,12 +243,6 @@ class BundleCli with CommandTime {
 
     await Directory(tempBuildPath).delete(recursive: true);
     return 0;
-  }
-
-  void generateHomepage() {
-    time(prefix: 'Total Homepage Generation');
-
-    stop();
   }
 
   /// Installs paperback-extensions-common from npmjs.org
@@ -395,5 +408,44 @@ class BundleCli with CommandTime {
     }
 
     return process.exitCode;
+  }
+
+  Future<int> generateHomepage() async {
+    time(prefix: 'Total Homepage Generation');
+
+    // TODO: Add check at start of bundle for pubspec required paperback fields
+
+    final pubspecFile = File(pubspecPath);
+    if (!await pubspecFile.exists()) {
+      printerr(yellow('Warning: Could not find pubspec.yaml'));
+      printerr(yellow('Skipping homepage generation\n'));
+      return 1;
+    }
+
+    print('- Generating the repository homepage');
+
+    // Read versioning.json file
+    final Map<String, dynamic> extensionsData =
+        json.decode(await File(join(output, 'modules', 'versioning.json')).readAsString());
+
+    final sources = extensionsData['sources'] as List<Map<String, dynamic>>;
+    final List<Map<String, dynamic>> extensionsList = [];
+    for (final extension in sources) {
+      extensionsList.add({
+        'name': extension['name'],
+        'tags': extension['tags'],
+      });
+    }
+
+    final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
+    final YamlMap paperbackSection = pubspec['paperback'];
+    final String repositoryName = paperbackSection['repository_name'];
+    final String description = paperbackSection['description'];
+    final bool? noAddToPaperbackButton = paperbackSection['no_add_to_paperback_button'];
+    final String? repositoryLogo = paperbackSection['repository_logo'];
+    final String? baseURL = paperbackSection['base_url'];
+
+    stop();
+    return 0;
   }
 }
