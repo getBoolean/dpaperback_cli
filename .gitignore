@@ -10,3 +10,4 @@ pubspec_overrides.yaml
 .local-chromium/
 bundles
 temp_build
+.pb_cache

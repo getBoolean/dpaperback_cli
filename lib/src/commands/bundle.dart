@@ -14,7 +14,7 @@ import 'package:yaml/yaml.dart';
 
 const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
-const kPugPackage = 'pug-cli@^1.0.0-alpha6';
+const kPugPackage = '@anduh/pug-cli@^1.0.0-alpha8';
 const kCliPrefix = '\$SourceId\$';
 
 final browserProvider = FutureProvider.autoDispose((_) => ppt.puppeteer.launch());
@@ -501,18 +501,19 @@ class BundleCli with CommandTime {
       return pugResult.exitCode;
     }
     final result = await runPugCompile(repositoryData, pugPath: pugPath);
-
     if (result.exitCode != 0) {
       stop();
       printerr(red('\nError: Could not compile html'));
-      printerr(result.stdout);
-      printerr(result.stderr);
+      printerr(grey(result.stdout));
+      printerr(red(result.stderr));
 
       return result.exitCode;
     }
 
+    final tempIndex = File(join(output, 'bundles', '${basenameWithoutExtension(pugPath)}.html'));
+    await tempIndex.rename('index.html');
+
     stop();
-    print(green(repositoryData.toString()));
     return 0;
   }
 
@@ -522,7 +523,7 @@ class BundleCli with CommandTime {
   Future<ProcessResult> runPugCompile(Map<String, dynamic> data, {required String pugPath}) async {
     final process = await Process.run(
       'pug',
-      ['compile', '-o', output, '-O', json.encode(data), '-D', pugPath],
+      ['-o', join(output, 'bundles'), '-O', json.encode(data), '-D', pugPath],
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified."
