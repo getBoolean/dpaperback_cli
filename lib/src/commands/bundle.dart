@@ -511,7 +511,7 @@ class BundleCli with CommandTime {
     }
 
     final tempIndex = File(join(output, 'bundles', '${basenameWithoutExtension(pugPath)}.html'));
-    await tempIndex.rename('index.html');
+    await tempIndex.rename(join(output, 'bundles', 'index.html'));
 
     stop();
     return 0;
