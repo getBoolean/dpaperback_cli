@@ -504,6 +504,10 @@ class BundleCli with CommandTime {
       return pugResult.exitCode;
     }
     final optionsFile = File(join(cacheDir, 'options.json'));
+    if (!await optionsFile.exists()) {
+      await optionsFile.create(recursive: true);
+    }
+
     await optionsFile.writeAsString(json.encode(repositoryData), flush: true);
 
     if (await optionsFile.exists()) {
