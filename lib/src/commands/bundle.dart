@@ -255,7 +255,12 @@ class BundleCli with CommandTime {
     return 0;
   }
 
-  /// Installs paperback-extensions-common from npmjs.org
+  /// Installs extensions from npmjs.org
+  ///
+  /// Arguments:
+  /// - [package]: The ID of the package to install
+  /// - [workingDirectory]: The directory to run the command in (or install to)
+  /// - [global]: Whether to install the package globally
   Future<ProcessResult> installJsPackage(
     String package, {
     required String workingDirectory,
@@ -495,7 +500,7 @@ class BundleCli with CommandTime {
       await pugResource.unpackAsync(pugPath);
     }
 
-    final pugResult = await installJsPackage(kPugPackage, global: true, workingDirectory: pwd);
+    final pugResult = await installJsPackage(kPugPackage, workingDirectory: pwd, global: true);
     if (pugResult.exitCode != 0) {
       stop();
       printerr(red('\nError: Could not install pug-cli'));
@@ -503,6 +508,7 @@ class BundleCli with CommandTime {
       printerr(pugResult.stderr);
       return pugResult.exitCode;
     }
+    
     final optionsFile = File(join(cacheDir, 'options.json'));
     if (!await optionsFile.exists()) {
       await optionsFile.create(recursive: true);
@@ -557,7 +563,7 @@ class BundleCli with CommandTime {
       await Directory(bundlesDir).create(recursive: true);
     }
     final process = await Process.run(
-      'pug',
+      'pug3',
       [pugPath, '-o', bundlesDir, '-O', optionsFile, '-D'],
       // Must be true on windows,
       // otherwise this exception is thrown:
