@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:dcli/dcli.dart';
-import 'package:dpaperback_cli/src/custom_time_display.dart';
+import 'package:dpaperback_cli/src/utils/custom_time_display.dart';
 
 const kDefaultPaperbackExtensionsCommon = 'paperback-extensions-common@^5.0.0-alpha.7';
 

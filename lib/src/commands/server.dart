@@ -6,7 +6,7 @@ import 'dart:io';
 import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/commands/bundle.dart';
-import 'package:dpaperback_cli/src/time_mixin.dart';
+import 'package:dpaperback_cli/src/utils/time_mixin.dart';
 import 'package:intranet_ip/intranet_ip.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:shelf/shelf.dart' as shelf;

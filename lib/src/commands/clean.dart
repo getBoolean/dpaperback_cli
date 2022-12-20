@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
-import 'package:dpaperback_cli/src/time_mixin.dart';
+import 'package:dpaperback_cli/src/utils/time_mixin.dart';
 import 'package:riverpod/riverpod.dart';
 
 class Clean extends Command<int> {
@@ -11,8 +11,8 @@ class Clean extends Command<int> {
     argParser
       ..addSeparator('Flags:')
       ..addOption(
-        'target',
-        abbr: 't',
+        'dir',
+        abbr: 'd',
         help: 'The directory with generated output from the build process',
         defaultsTo: './',
       );
@@ -31,46 +31,51 @@ class Clean extends Command<int> {
     final results = argResults;
     if (results == null) return 0;
 
-    final target = parseTargetPath(results);
+    final dir = parseDirPath(results);
 
     return CleanCli(
-      target: target,
+      dir: dir,
       container: container,
     ).run();
   }
 
-  String parseTargetPath(ArgResults command) {
-    final targetArgument = command['target'] as String;
-    final targetPath = canonicalize(targetArgument);
-    if (!exists(targetPath)) {
-      print(red('The target directory "$targetArgument" could not be found'));
+  String parseDirPath(ArgResults command) {
+    final dirArgument = command['dir'] as String;
+    final dirPath = canonicalize(dirArgument);
+    if (!exists(dirPath)) {
+      print(red('The directory "$dirArgument" could not be found'));
       exit(2);
     }
 
-    return targetPath;
+    return dirPath;
   }
 }
 
 class CleanCli with CommandTime {
-  final String target;
+  final String dir;
   final ProviderContainer container;
 
-  CleanCli({required this.target, required this.container});
+  CleanCli({required this.dir, required this.container});
 
   Future<int> run() async {
-    final bundles = join(target, 'bundles');
+    final bundles = join(dir, 'bundles');
     if (await Directory(bundles).exists()) {
       await Directory(bundles).delete(recursive: true);
     }
 
-    final tempBuild = join(target, 'temp_build');
+    final tempBuild = join(dir, 'temp_build');
     if (await Directory(tempBuild).exists()) {
       await Directory(tempBuild).delete(recursive: true);
     }
 
-    final localChromium = join(target, '.local-chromium');
+    final localChromium = join(dir, '.local-chromium');
     if (await Directory(localChromium).exists()) {
       await Directory(localChromium).delete(recursive: true);
+    }
+
+    final paperbackCache = join(dir, '.pb_cache');
+    if (await Directory(paperbackCache).exists()) {
+      await Directory(paperbackCache).delete(recursive: true);
     }
 
     return 0;

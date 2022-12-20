@@ -4,7 +4,9 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:dcli/dcli.dart';
-import 'package:dpaperback_cli/src/time_mixin.dart';
+import 'package:dpaperback_cli/src/dcli/resource/generated/resource_registry.g.dart';
+import 'package:dpaperback_cli/src/utils/time_mixin.dart';
+import 'package:dpaperback_cli/src/utils/unpack_async.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
 import 'package:puppeteer/puppeteer.dart';
 import 'package:riverpod/riverpod.dart';
@@ -134,7 +136,11 @@ class BundleCli with CommandTime {
       return successCode;
     }
     await createVersioningFile();
-    await generateHomepage();
+    final homepageSuccessCode = await generateHomepage();
+    if (homepageSuccessCode != 0) {
+      return homepageSuccessCode;
+    }
+
     executionTimer.stop();
     print((blue('Total Execution time: ${executionTimer.elapsedMilliseconds}ms', bold: true)));
     return 0;
@@ -265,7 +271,10 @@ class BundleCli with CommandTime {
 
   Future<int> _compileSources(String tempBuildPath) async {
     // Download paperback-extensions-common from npmjs.org
-    final minifiedLib = join(output, 'bundles', kMinifiedLibrary);
+    if (!await Directory(join(output, '.pb_cache')).exists()) {
+      await Directory(join(output, '.pb_cache')).create(recursive: true);
+    }
+    final minifiedLib = join(output, '.pb_cache', kMinifiedLibrary);
     if (!await File(minifiedLib).exists()) {
       time(prefix: 'Downloading dependencies');
       final successCode = await _bundleJsDependencies(minifiedLib);
@@ -411,8 +420,6 @@ class BundleCli with CommandTime {
   }
 
   Future<int> generateHomepage() async {
-    time(prefix: 'Total Homepage Generation');
-
     // TODO: Add check at start of bundle for pubspec required paperback fields
 
     final pubspecFile = File(pubspecPath);
@@ -422,13 +429,14 @@ class BundleCli with CommandTime {
       return 1;
     }
 
-    print('- Generating the repository homepage');
+    time(prefix: 'Total Homepage Generation');
 
     // Read versioning.json file
     final Map<String, dynamic> extensionsData =
-        json.decode(await File(join(output, 'modules', 'versioning.json')).readAsString());
+        json.decode(await File(join(output, 'bundles', 'versioning.json')).readAsString());
+    final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
 
-    final sources = extensionsData['sources'] as List<Map<String, dynamic>>;
+    final List<dynamic> sources = extensionsData['sources'];
     final List<Map<String, dynamic>> extensionsList = [];
     for (final extension in sources) {
       extensionsList.add({
@@ -437,7 +445,18 @@ class BundleCli with CommandTime {
       });
     }
 
-    final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
+    // To be used by homepage.pug file, repositoryData must by of the format:
+    /*
+      {
+        repositoryName: "",
+        repositoryDescription: "",
+        baseURL: "https://yourlinkhere",
+        sources: [{name: sourceName, tags[]: []}]
+        repositoryLogo: "url",
+        noAddToPaperbackButton: true,
+      }
+    */
+    final Map<String, dynamic> repositoryData = {};
     final YamlMap paperbackSection = pubspec['paperback'];
     final String repositoryName = paperbackSection['repository_name'];
     final String description = paperbackSection['description'];
@@ -445,7 +464,64 @@ class BundleCli with CommandTime {
     final String? repositoryLogo = paperbackSection['repository_logo'];
     final String? baseURL = paperbackSection['base_url'];
 
+    repositoryData['repositoryName'] = repositoryName;
+    repositoryData['repositoryDescription'] = description;
+    repositoryData['sources'] = extensionsList;
+
+    // The repository can register a custom base URL. If not, this file will try to deduct one from GITHUB_REPOSITORY
+    if (baseURL != null) {
+      repositoryData['baseURL'] = baseURL;
+    } else {}
+
+    if (noAddToPaperbackButton != null) {
+      repositoryData['noAddToPaperbackButton'] = noAddToPaperbackButton;
+    }
+
+    if (repositoryLogo != null) {
+      repositoryData['repositoryLogo'] = repositoryLogo;
+    }
+
+    final cacheDir = join(pwd, '.pb_cache');
+    if (!await Directory(cacheDir).exists()) {
+      await Directory(cacheDir).create(recursive: true);
+    }
+
+    // Increment version number if you change the homepage.pug file
+    final pugPath = join(cacheDir, 'homepage_v1.pug');
+    if (!await File(pugPath).exists()) {
+      final pugResource = ResourceRegistry.resources['website_generation/homepage.pug']!;
+      await pugResource.unpackAsync(pugPath);
+    }
+
+    final result = await runPugCompile(repositoryData, pugPath: pugPath);
+    
+    if (result.exitCode != 0) {
+      stop();
+      printerr(red('\nError: Could not compile html'));
+      printerr(result.stdout);
+      printerr(result.stderr);
+
+      return result.exitCode;
+    }
+
     stop();
+    print(green(repositoryData.toString()));
     return 0;
+  }
+
+  /// The compiled js file will be saved to [output].
+  ///
+  /// Returns the exit code of the process.
+  Future<ProcessResult> runPugCompile(Map<String, dynamic> data, {required String pugPath}) async {
+    final process = await Process.run(
+      'pug',
+      ['compile', '-o', output, '-O', json.encode(data), '-D', pugPath],
+      // Must be true on windows,
+      // otherwise this exception is thrown:
+      // "The system cannot find the file specified."
+      runInShell: Platform.isWindows,
+    );
+
+    return process;
   }
 }
