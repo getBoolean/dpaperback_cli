@@ -21,12 +21,15 @@ class Server extends Command<int> {
     argParser
       ..addSeparator('Flags:')
       ..addFlag('skip-bundle',
-          defaultsTo: false, help: 'Skip bundling the sources when first starting')
+          help: 'Skip bundling the sources when first starting', negatable: false)
       ..addFlag('hot-restart', negatable: true, help: 'Rebuild sources on save', defaultsTo: true)
+      ..addFlag('hide-ip-address',
+          help: 'Hide the ip address when the server starts', negatable: false)
       ..addOption('hot-restart-throttle',
           defaultsTo: '10000',
+          abbr: 'd',
           help:
-              'Amount of Time (in milliseconds) after a hot restart before the next hot restart can occur.')
+              'Number of milliseconds after a hot restart was triggered in which another hot restart cannot be triggered.')
       ..addOption('output',
           abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
       ..addOption('target',
@@ -65,6 +68,7 @@ class Server extends Command<int> {
     final source = results['source'];
     final enableHotRestart = results['hot-restart'] as bool;
     final hotRestartThrottleMilliseconds = int.tryParse(results['hot-restart-throttle'] as String);
+    final hideIpAddress = results['hide-ip-address'] as bool;
     if (hotRestartThrottleMilliseconds == null || hotRestartThrottleMilliseconds < 1000) {
       printerr(red('Invalid hot restart throttle value. Must be 1000 or greater'));
       return 2;
@@ -90,6 +94,7 @@ class Server extends Command<int> {
       host: host,
       commonsPackage: commonsPackage,
       container: container,
+      hideIpAddress: hideIpAddress,
     ).run();
 
     return successCode;
@@ -127,6 +132,7 @@ class ServerCli with CommandTime {
   final ProviderContainer container;
   final bool enableHotRestart;
   final int hotRestartThrottleMilliseconds;
+  final bool hideIpAddress;
 
   ServerCli({
     required this.output,
@@ -138,6 +144,7 @@ class ServerCli with CommandTime {
     required this.container,
     required this.enableHotRestart,
     required this.hotRestartThrottleMilliseconds,
+    required this.hideIpAddress,
   });
 
   Future<int> run() async {
@@ -156,8 +163,7 @@ class ServerCli with CommandTime {
     final ip = await intranetIpv4();
     // TODO: Move server onto isolate
     final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
-    print(blue('\nStarting server at http://${server.address.host}:${server.port}'));
-    print('\nFor a list of commands type ${green('h')} or ${green('help')}');
+    printServerStarted(server);
 
     stdout.write(prefixTime(' :'));
 
@@ -214,9 +220,17 @@ class ServerCli with CommandTime {
       printerr(prefixTime() + red('Failed to build sources, stopping server...'));
       exit(2);
     }
-    print('\n${blue('Starting server at http://${server.address.host}:${server.port}')}');
-    print('\nFor a list of commands type ${green('h')} or ${green('help')}');
+    printServerStarted(server);
     subscription.resume();
+  }
+
+  void printServerStarted(io.HttpServer server) {
+    if (hideIpAddress) {
+      print(blue('\nStarting server at http://${'*' * 10}:${server.port}'));
+    } else {
+      print(blue('\nStarting server at http://${server.address.host}:${server.port}'));
+    }
+    print('\nFor a list of commands type ${green('h')} or ${green('help')}');
   }
 }
 
