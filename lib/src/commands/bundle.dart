@@ -558,7 +558,7 @@ class BundleCli with CommandTime {
     }
     final process = await Process.run(
       'pug',
-      ['-o', bundlesDir, '-O', optionsFile, '-D', pugPath],
+      [pugPath, '-o', bundlesDir, '-O', optionsFile, '-D'],
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified."
