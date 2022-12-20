@@ -522,15 +522,22 @@ class BundleCli with CommandTime {
       printerr(red('Skipping homepage generation\n'));
       return 2;
     }
-    final result = await runPugCompile(optionsFile.path, pugPath: pugPath);
-    await optionsFile.delete();
-    if (result.exitCode != 0) {
-      stop();
-      printerr(red('\nError: Could not compile html'));
-      printerr(grey(result.stdout));
-      printerr(red(result.stderr));
+    try {
+      final result = await runPugCompile(optionsFile.path, pugPath: pugPath);
+      await optionsFile.delete();
+      if (result.exitCode != 0) {
+        stop();
+        printerr(red('\nError: Could not compile html'));
+        printerr(grey(result.stdout));
+        printerr(red(result.stderr));
 
-      return result.exitCode;
+        return result.exitCode;
+      }
+    } on ProcessException catch (e) {
+      stop();
+      printerr(red('\nError: Could not compile html - ${e.message}'));
+      printerr(red(e.toString()));
+      return 1;
     }
 
     final tempIndex = File(join(output, 'bundles', '${basenameWithoutExtension(pugPath)}.html'));
