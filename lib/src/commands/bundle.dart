@@ -30,6 +30,11 @@ class Bundle extends Command<int> {
       ..addOption('target',
           abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
       ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
+      ..addOption('subfolder',
+          abbr: 'f',
+          help: 'The subfolder the generated sources generated will be at.',
+          defaultsTo: '',
+          valueHelp: 'folder')
       ..addOption(
         'paperback-extensions-common',
         abbr: 'c',
@@ -74,6 +79,7 @@ class Bundle extends Command<int> {
       commonsPackage: commonsPackage,
       container: container,
       pubspecPath: pubspecPath,
+      subfolder: results['subfolder'] as String,
     ).run();
   }
 
@@ -117,6 +123,7 @@ class BundleCli with CommandTime {
   final String commonsPackage;
   final ProviderContainer container;
   final String pubspecPath;
+  final String subfolder;
   late Future<Browser> futureBrowser;
 
   BundleCli({
@@ -126,6 +133,7 @@ class BundleCli with CommandTime {
     required this.commonsPackage,
     required this.container,
     required this.pubspecPath,
+    this.subfolder = '',
   });
 
   Future<int> run() async {
@@ -478,7 +486,20 @@ class BundleCli with CommandTime {
     // The repository can register a custom base URL. If not, this file will try to deduct one from GITHUB_REPOSITORY
     if (baseURL != null) {
       repositoryData['baseURL'] = baseURL;
-    } else {}
+    } else {
+      final githubRepositoryEnvironmentVariable = String.fromEnvironment('GITHUB_REPOSITORY');
+      if (githubRepositoryEnvironmentVariable == '') {
+        // If it's not possible to determine the baseURL, using noAddToPaperbackButton will mask the field from the homepage
+        // The repository can force noAddToPaperbackButton to false by adding the field to package.json
+        repositoryData['baseURL'] = 'undefined';
+        repositoryData['noAddToPaperbackButton'] = true;
+      } else {
+        final split = githubRepositoryEnvironmentVariable.toLowerCase().split('/');
+        // The capitalization of folder is important, using folder.toLowerCase() make a non working link
+        repositoryData['baseURL'] =
+            'https://${split[0]}.github.io/${split[1]}${(subfolder == '') ? '' : '/$subfolder'}';
+      }
+    }
 
     if (noAddToPaperbackButton != null) {
       repositoryData['noAddToPaperbackButton'] = noAddToPaperbackButton;
@@ -508,7 +529,7 @@ class BundleCli with CommandTime {
       printerr(pugResult.stderr);
       return pugResult.exitCode;
     }
-    
+
     final optionsFile = File(join(cacheDir, 'options.json'));
     if (!await optionsFile.exists()) {
       await optionsFile.create(recursive: true);
