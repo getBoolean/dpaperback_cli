@@ -225,12 +225,12 @@ class BundleCli with CommandTime {
   }
 
   Future<int> bundleSources() async {
-    final tempBuildPath = join(output, 'temp_build');
-    if (!exists(tempBuildPath)) {
-      await Directory(tempBuildPath).create(recursive: true);
+    final workingDirectory = join(output, 'bundles', subfolder);
+    if (!await Directory(workingDirectory).exists()) {
+      await Directory(workingDirectory).create(recursive: true);
     }
     final paths =
-        find('*', workingDirectory: join(output, 'bundles', subfolder), recursive: false, types: [
+        find('*', workingDirectory: workingDirectory, recursive: false, types: [
       Find.file,
       Find.directory,
       Find.link,
@@ -246,6 +246,10 @@ class BundleCli with CommandTime {
       }
     }
 
+    final tempBuildPath = join(output, 'temp_build');
+    if (!exists(tempBuildPath)) {
+      await Directory(tempBuildPath).create(recursive: true);
+    }
     final successCode = await _compileSources(tempBuildPath);
     if (successCode != 0) {
       return successCode;
