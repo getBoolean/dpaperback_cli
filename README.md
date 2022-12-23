@@ -2,7 +2,9 @@
 
 Status: **In Development**
 
-A commandline tool for bundling and serving Dart Paperback extensions
+While the majority of major tasks have been completed, there is still a number of bugs to be fixed
+
+A commandline tool for bundling and serving Dart Paperback 0.6/0.7 extensions
 using [dart_pb_extensions_common](https://github.com/getBoolean/dart_pb_extensions_common)
 
 ## Getting Started
