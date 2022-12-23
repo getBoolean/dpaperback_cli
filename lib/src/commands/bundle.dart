@@ -180,20 +180,23 @@ class BundleCli with CommandTime {
         final sourceId = sourceInfo['id'];
         Directory(dir).renameSync(join(dirname(dir), sourceId));
         (versioningFileMap['sources']! as List).add(sourceInfo);
+        stop();
       } on FileNotFoundException {
+        stop();
         printerr(yellow('Skipping "$source", source.js not found'));
         continue;
       } on DCliException catch (e) {
+        stop();
         printerr(red('Skipping "$source", ${e.message}${e.cause != null ? ' - ${e.cause}' : ''}'));
         continue;
       } on FileSystemException catch (e) {
-        printerr(red('Skipping "$source", could not read source.js into memory: ${e.message}'));
+        stop();
+        printerr(red('Skipping "$source", ${e.message}${' - ${e.path}'}${' - ${e.osError}'}'));
         continue;
       } on Exception catch (e) {
+        stop();
         printerr(red('Skipping "$source", ${e.toString()}'));
         continue;
-      } finally {
-        stop();
       }
     }
     unawaited(browser.close());
