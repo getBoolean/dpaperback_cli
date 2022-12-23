@@ -24,6 +24,13 @@ class Bundle extends Command<int> {
 
   Bundle([ProviderContainer? container]) : container = container ?? ProviderContainer() {
     argParser
+      ..addSeparator('Flags:')
+      ..addFlag(
+        'homepage',
+        help: 'When enabled, the homepage file be generated using pug-cli',
+        negatable: true,
+        defaultsTo: true,
+      )
       ..addSeparator('Options:')
       ..addOption('output',
           abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
@@ -70,6 +77,7 @@ class Bundle extends Command<int> {
     final pubspecPath = parsePubspecPath(results);
     final source = results['source'] as String?;
     final commonsPackage = results['paperback-extensions-common'] as String;
+    final shouldGenerateHomepage = results['homepage'] as bool;
 
     return BundleCli(
       output: output,
@@ -79,6 +87,7 @@ class Bundle extends Command<int> {
       container: container,
       pubspecPath: pubspecPath,
       subfolder: results['subfolder'] as String?,
+      shouldGenerateHomepage: shouldGenerateHomepage,
     ).run();
   }
 
@@ -123,6 +132,7 @@ class BundleCli with CommandTime {
   final ProviderContainer container;
   final String pubspecPath;
   final String? subfolder;
+  final bool shouldGenerateHomepage;
   late Future<Browser> futureBrowser;
 
   BundleCli({
@@ -133,6 +143,7 @@ class BundleCli with CommandTime {
     required this.container,
     required this.pubspecPath,
     required this.subfolder,
+    required this.shouldGenerateHomepage,
   });
 
   Future<int> run() async {
@@ -145,11 +156,15 @@ class BundleCli with CommandTime {
       await futureBrowser.then((value) => value.close());
       return successCode;
     }
+    
     await createVersioningFile();
-    final homepageSuccessCode = await generateHomepage();
-    if (homepageSuccessCode != 0) {
-      executionTimer.stop();
-      return homepageSuccessCode;
+
+    if (shouldGenerateHomepage) {
+      final homepageSuccessCode = await generateHomepage();
+      if (homepageSuccessCode != 0) {
+        executionTimer.stop();
+        return homepageSuccessCode;
+      }
     }
 
     executionTimer.stop();

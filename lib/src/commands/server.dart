@@ -22,6 +22,12 @@ class Server extends Command<int> {
       ..addSeparator('Flags:')
       ..addFlag('skip-bundle',
           help: 'Skip bundling the sources when first starting', negatable: false)
+      ..addFlag(
+        'homepage',
+        help: 'When enabled, the homepage file be generated using pug-cli',
+        negatable: true,
+        defaultsTo: true,
+      )
       ..addFlag('hot-restart', negatable: true, help: 'Rebuild sources on save', defaultsTo: true)
       ..addFlag('hide-ip-address',
           help: 'Hide the ip address when the server starts', negatable: false)
@@ -84,6 +90,7 @@ class Server extends Command<int> {
     final hotRestartThrottleMilliseconds = int.tryParse(results['hot-restart-throttle'] as String);
     final hideIpAddress = results['hide-ip-address'] as bool;
     final subfolder = results['subfolder'] as String?;
+    final shouldGenerateHomepage = results['homepage'] as bool;
     if (hotRestartThrottleMilliseconds == null || hotRestartThrottleMilliseconds < 1000) {
       printerr(red('Invalid hot restart throttle value. Must be 1000 or greater'));
       return 2;
@@ -99,6 +106,7 @@ class Server extends Command<int> {
         subfolder: subfolder,
         container: container,
         pubspecPath: pubspecPath,
+        shouldGenerateHomepage: shouldGenerateHomepage,
       ).run();
     }
     final successCode = ServerCli(
@@ -114,6 +122,7 @@ class Server extends Command<int> {
       hideIpAddress: hideIpAddress,
       pubspecPath: pubspecPath,
       subfolder: subfolder,
+      shouldGenerateHomepage: shouldGenerateHomepage,
     ).run();
 
     return successCode;
@@ -165,6 +174,7 @@ class ServerCli with CommandTime {
   final bool hideIpAddress;
   final String pubspecPath;
   final String? subfolder;
+  final bool shouldGenerateHomepage;
 
   ServerCli({
     required this.output,
@@ -179,6 +189,7 @@ class ServerCli with CommandTime {
     required this.hotRestartThrottleMilliseconds,
     required this.hideIpAddress,
     required this.subfolder,
+    required this.shouldGenerateHomepage,
   });
 
   Future<int> run() async {
@@ -267,6 +278,7 @@ class ServerCli with CommandTime {
       container: container,
       pubspecPath: pubspecPath,
       subfolder: subfolder,
+      shouldGenerateHomepage: shouldGenerateHomepage,
     ).run();
     if (exitCode != 0) {
       printerr(prefixTime() + red('Failed to build sources, stopping server...'));
