@@ -612,6 +612,10 @@ class BundleCli with CommandTime {
       printerr(red('\nError: Could not compile html - ${e.message}'));
       printerr(red(e.toString()));
       return 1;
+    } on Exception catch (e) {
+      stop();
+      printerr(red('\nError: Could not compile html - ${e.toString()}'));
+      return 1;
     }
     stop();
 
@@ -619,6 +623,8 @@ class BundleCli with CommandTime {
       await optionsFile.delete();
     } on FileSystemException catch (e) {
       printerr(red('Warning: Could not delete options.json - ${e.message}'));
+    } on Exception catch (e) {
+      printerr(red('Warning: Could not delete options.json - ${e.toString()}'));
     }
 
     final tempIndex = File(join(bundlesPath, '${basenameWithoutExtension(pugPath)}.html'));
