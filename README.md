@@ -23,8 +23,8 @@ Alternatively, it can be added as a dev dependency to your `pubspec.yaml` file. 
 
 ```yaml
 dev_dependencies:
-  dart_pb_cli:
-    git: https://github.com/getBoolean/dart_pb_cli
+  dpaperback_cli:
+    git: https://github.com/getBoolean/dpaperback_cli
 ```
 
 ### Documentation
