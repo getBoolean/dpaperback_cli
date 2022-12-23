@@ -233,13 +233,13 @@ class BundleCli with CommandTime {
       Find.link,
     ]).toList();
 
-    for (final file in paths) {
-      if (await FileSystemEntity.isFile(file) && basename(file) != kMinifiedLibrary) {
-        await File(file).delete();
-      } else if (await FileSystemEntity.isDirectory(file)) {
-        await Directory(file).delete(recursive: true);
-      } else if (await FileSystemEntity.isLink(file)) {
-        await Link(file).delete();
+    for (final path in paths) {
+      if (await FileSystemEntity.isFile(path) && basename(path) != kMinifiedLibrary) {
+        await File(path).delete();
+      } else if (await FileSystemEntity.isDirectory(path)) {
+        await Directory(path).delete(recursive: true);
+      } else if (await FileSystemEntity.isLink(path)) {
+        await Link(path).delete();
       }
     }
 
