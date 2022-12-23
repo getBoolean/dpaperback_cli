@@ -222,7 +222,6 @@ class BundleCli with CommandTime {
 
   Future<int> bundleSources() async {
     final tempBuildPath = join(output, 'temp_build');
-    // delete all files in temp_build except kMinifiedLibrary
     if (!exists(tempBuildPath)) {
       await Directory(tempBuildPath).create(recursive: true);
     }
