@@ -460,7 +460,6 @@ class BundleCli with CommandTime {
 
     // Read versioning.json file
     final bundlesPath = join(output, 'bundles', subfolder);
-    // TODO: Pass from previous function instead of reading again
     final Map<String, dynamic> extensionsData =
         json.decode(await File(join(bundlesPath, 'versioning.json')).readAsString());
     final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
