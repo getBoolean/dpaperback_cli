@@ -156,7 +156,7 @@ class BundleCli with CommandTime {
       await futureBrowser.then((value) => value.close());
       return successCode;
     }
-    
+
     await createVersioningFile();
 
     if (shouldGenerateHomepage) {
@@ -364,7 +364,7 @@ class BundleCli with CommandTime {
       }
       await File(minifiedLib).copy(finalJsPath);
       await File(finalJsPath).writeAsString(
-        '\nlet self = this;\n',
+        '\nvar self = global.self;\n',
         mode: FileMode.append,
       );
       // append generated dart source to minified js dependencies
