@@ -141,11 +141,14 @@ class BundleCli with CommandTime {
     print('');
     final successCode = await bundleSources();
     if (successCode != 0) {
+      executionTimer.stop();
+      await futureBrowser.then((value) => value.close());
       return successCode;
     }
     await createVersioningFile();
     final homepageSuccessCode = await generateHomepage();
     if (homepageSuccessCode != 0) {
+      executionTimer.stop();
       return homepageSuccessCode;
     }
 
@@ -229,8 +232,7 @@ class BundleCli with CommandTime {
     if (!await Directory(workingDirectory).exists()) {
       await Directory(workingDirectory).create(recursive: true);
     }
-    final paths =
-        find('*', workingDirectory: workingDirectory, recursive: false, types: [
+    final paths = find('*', workingDirectory: workingDirectory, recursive: false, types: [
       Find.file,
       Find.directory,
       Find.link,
@@ -247,7 +249,7 @@ class BundleCli with CommandTime {
     }
 
     final tempBuildPath = join(output, 'temp_build');
-    if (!exists(tempBuildPath)) {
+    if (!await Directory(tempBuildPath).exists()) {
       await Directory(tempBuildPath).create(recursive: true);
     }
     final successCode = await _compileSources(tempBuildPath);
@@ -310,6 +312,7 @@ class BundleCli with CommandTime {
       final successCode = await _bundleJsDependencies(minifiedLib);
       stop();
       if (successCode != 0) {
+        printerr(red('Failed to bundle dependencies'));
         return successCode;
       }
     }
@@ -376,22 +379,36 @@ class BundleCli with CommandTime {
       await Directory(commonsTempDir).delete(recursive: true);
       return commonResult.exitCode;
     }
+
+    final es6Result = await installJsPackage('es6', workingDirectory: commonsTempDir);
+    if (es6Result.exitCode != 0) {
+      await Directory(commonsTempDir).delete(recursive: true);
+      return es6Result.exitCode;
+    }
+
     final browserifyResult =
         await installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
     if (browserifyResult.exitCode != 0) {
       await Directory(commonsTempDir).delete(recursive: true);
       return browserifyResult.exitCode;
     }
-    if (!exists(dirname(outputFile))) {
+    if (!await Directory(dirname(outputFile)).exists()) {
       await Directory(dirname(outputFile)).create(recursive: true);
     }
-    await _bundleCommons(commonsTempDir, output: outputFile);
+    final bundleResult = await _bundleCommons(commonsTempDir, output: outputFile);
+    if (bundleResult.exitCode != 0) {
+      stop();
+      printerr(yellow(bundleResult.stdout));
+      printerr(red(bundleResult.stderr));
+      await Directory(commonsTempDir).delete(recursive: true);
+      return bundleResult.exitCode;
+    }
     await Directory(commonsTempDir).delete(recursive: true);
     return 0;
   }
 
-  Future<int> _bundleCommons(String tempDir, {required String output}) async {
-    return (await Process.run(
+  Future<ProcessResult> _bundleCommons(String tempDir, {required String output}) async {
+    return await Process.run(
       'browserify',
       [
         'node_modules/paperback-extensions-common/lib/index.js',
@@ -406,8 +423,8 @@ class BundleCli with CommandTime {
         '-x',
         'fs',
         '-r',
-        'es6'
-            '-o',
+        'es6',
+        '-o',
         output,
       ],
       workingDirectory: tempDir,
@@ -415,8 +432,7 @@ class BundleCli with CommandTime {
       // otherwise this exception is thrown:
       // "The system cannot find the file specified.""
       runInShell: Platform.isWindows,
-    ))
-        .exitCode;
+    );
   }
 
   /// Runs the dart compiler to compile the given [script] to js.

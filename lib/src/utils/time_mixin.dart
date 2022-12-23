@@ -31,10 +31,7 @@ mixin CommandTime {
   int stop() {
     if (!stdin.hasTerminal) {
       _stopwatch?.stop();
-      final time = _stopwatch?.elapsedMilliseconds;
-      if (time == null) {
-        throw Exception('Timer not started. Call `time` before `stop`');
-      }
+      final time = _stopwatch?.elapsedMilliseconds ?? 0;
       _stopwatch = null;
       _timeDisplay = null;
       return time;
