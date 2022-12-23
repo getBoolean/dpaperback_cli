@@ -234,7 +234,7 @@ class BundleCli with CommandTime {
     ]).toList();
 
     for (final path in paths) {
-      if (await FileSystemEntity.isFile(path) && basename(path) != kMinifiedLibrary) {
+      if (await FileSystemEntity.isFile(path)) {
         await File(path).delete();
       } else if (await FileSystemEntity.isDirectory(path)) {
         await Directory(path).delete(recursive: true);
