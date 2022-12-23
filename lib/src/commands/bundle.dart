@@ -180,7 +180,6 @@ class BundleCli with CommandTime {
         final sourceId = sourceInfo['id'];
         Directory(dir).renameSync(join(dirname(dir), sourceId));
         (versioningFileMap['sources']! as List).add(sourceInfo);
-        stop();
       } on FileNotFoundException {
         printerr(yellow('Skipping "$source", source.js not found'));
         continue;
@@ -193,6 +192,8 @@ class BundleCli with CommandTime {
       } on Exception catch (e) {
         printerr(red('Skipping "$source", ${e.toString()}'));
         continue;
+      } finally {
+        stop();
       }
     }
     unawaited(browser.close());
@@ -225,9 +226,13 @@ class BundleCli with CommandTime {
     if (!exists(tempBuildPath)) {
       await Directory(tempBuildPath).create(recursive: true);
     }
-    final files = find('*', workingDirectory: tempBuildPath, recursive: false).toList();
+    final paths = find('*', workingDirectory: tempBuildPath, recursive: false, types: [
+      Find.file,
+      Find.directory,
+      Find.link,
+    ]).toList();
 
-    for (final file in files) {
+    for (final file in paths) {
       if (isFile(file) && basename(file) != kMinifiedLibrary) {
         await File(file).delete();
       } else if (isDirectory(file)) {
@@ -446,8 +451,9 @@ class BundleCli with CommandTime {
     time(prefix: 'Total Homepage Generation');
 
     // Read versioning.json file
-    final Map<String, dynamic> extensionsData = json
-        .decode(await File(join(output, 'bundles', subfolder, 'versioning.json')).readAsString());
+    final bundlesPath = join(output, 'bundles', subfolder);
+    final Map<String, dynamic> extensionsData =
+        json.decode(await File(join(bundlesPath, 'versioning.json')).readAsString());
     final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
 
     final List<dynamic> sources = extensionsData['sources'];
@@ -565,9 +571,8 @@ class BundleCli with CommandTime {
       return 1;
     }
 
-    final tempIndex =
-        File(join(output, 'bundles', subfolder, '${basenameWithoutExtension(pugPath)}.html'));
-    await tempIndex.rename(join(output, 'bundles', subfolder, 'index.html'));
+    final tempIndex = File(join(bundlesPath, '${basenameWithoutExtension(pugPath)}.html'));
+    await tempIndex.rename(join(bundlesPath, 'index.html'));
 
     stop();
     return 0;
