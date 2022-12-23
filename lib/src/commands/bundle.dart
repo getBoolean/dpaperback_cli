@@ -202,6 +202,7 @@ class BundleCli with CommandTime {
     unawaited(browser.close());
     final versioningFileContents = jsonEncode(versioningFileMap);
     await File(join(bundlesPath, 'versioning.json')).writeAsString(versioningFileContents);
+    versionTimer.stop();
     print((blue('Total Versioning File: ${versionTimer.elapsedMilliseconds}ms', bold: true)));
   }
 
@@ -447,18 +448,19 @@ class BundleCli with CommandTime {
 
   Future<int> generateHomepage() async {
     // TODO: Add check at start of bundle for pubspec required paperback fields
-
     final pubspecFile = File(pubspecPath);
     if (!await pubspecFile.exists()) {
+      stop();
       printerr(yellow('Warning: Could not find pubspec.yaml'));
       printerr(yellow('Skipping homepage generation\n'));
       return 1;
     }
 
-    time(prefix: 'Total Homepage Generation');
+    final homepageTimer = Stopwatch()..start();
 
     // Read versioning.json file
     final bundlesPath = join(output, 'bundles', subfolder);
+    // TODO: Pass from previous function instead of reading again
     final Map<String, dynamic> extensionsData =
         json.decode(await File(join(bundlesPath, 'versioning.json')).readAsString());
     final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
@@ -532,6 +534,7 @@ class BundleCli with CommandTime {
       await pugResource.unpackAsync(pugPath);
     }
 
+    time(prefix: 'Install pug-cli');
     final pugResult = await installJsPackage(kPugPackage, workingDirectory: pwd, global: true);
     if (pugResult.exitCode != 0) {
       stop();
@@ -540,6 +543,7 @@ class BundleCli with CommandTime {
       printerr(pugResult.stderr);
       return pugResult.exitCode;
     }
+    stop();
 
     final optionsFile = File(join(cacheDir, 'options.json'));
     if (!await optionsFile.exists()) {
@@ -549,20 +553,19 @@ class BundleCli with CommandTime {
     await optionsFile.writeAsString(json.encode(repositoryData), flush: true);
 
     if (!await optionsFile.exists()) {
-      stop();
       printerr(red('Warning: Could not find options.json'));
       printerr(red('Skipping homepage generation\n'));
       return 2;
     }
     if (!await File(pugPath).exists()) {
-      stop();
       printerr(red('Warning: Could not pug at "$pugPath"'));
       printerr(red('Skipping homepage generation\n'));
       return 2;
     }
+
+    time(prefix: 'Compile Homepage PUG to HTML');
     try {
       final result = await runPugCompile(optionsFile.path, pugPath: pugPath);
-      await optionsFile.delete();
       if (result.exitCode != 0) {
         stop();
         printerr(red('\nError: Could not compile html'));
@@ -577,11 +580,19 @@ class BundleCli with CommandTime {
       printerr(red(e.toString()));
       return 1;
     }
+    stop();
+
+    try {
+      await optionsFile.delete();
+    } on FileSystemException catch (e) {
+      printerr(red('Warning: Could not delete options.json - ${e.message}'));
+    }
 
     final tempIndex = File(join(bundlesPath, '${basenameWithoutExtension(pugPath)}.html'));
     await tempIndex.rename(join(bundlesPath, 'index.html'));
 
-    stop();
+    homepageTimer.stop();
+    print((blue('Total Homepage Generation: ${homepageTimer.elapsedMilliseconds}ms')));
     return 0;
   }
 
