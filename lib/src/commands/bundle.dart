@@ -226,7 +226,8 @@ class BundleCli with CommandTime {
     if (!exists(tempBuildPath)) {
       await Directory(tempBuildPath).create(recursive: true);
     }
-    final paths = find('*', workingDirectory: tempBuildPath, recursive: false, types: [
+    final paths =
+        find('*', workingDirectory: join(output, 'bundles', subfolder), recursive: false, types: [
       Find.file,
       Find.directory,
       Find.link,
