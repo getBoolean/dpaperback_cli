@@ -198,45 +198,53 @@ class ServerCli with CommandTime {
       ),
     );
     final ip = await intranetIpv4();
-    final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
-    printServerStarted(server);
-
-    stdout.write(prefixTime(' :'));
-
-    late StreamSubscription<List<int>> subscription;
-    subscription = stdin.listen((event) async {
-      final input = utf8.decode(event).trim();
-
-      if (input == 'h' || input == 'help') {
-        print(blue('\nHelp'));
-        print('  h, help - Display this message');
-        print('  q, quit - Stops the server and quits the CLI');
-        print('  r, rebuild - Rebuilds the sources\n');
-      } else if (input == 'quit' ||
-          input == 'q' ||
-          input == 'exit' ||
-          input == 's' ||
-          input == 'stop') {
-        print('\n${blue('Stopping server...')}');
-        exit(0);
-      } else if (input == 'r' || input == 'restart') {
-        await rebuildSources(subscription, server);
-      }
+    try {
+      final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
+      printServerStarted(server);
 
       stdout.write(prefixTime(' :'));
-    });
 
-    if (enableHotRestart) {
-      Watcher(join(target, source))
-          .events
-          .throttle(Duration(milliseconds: hotRestartThrottleMilliseconds))
-          .listen((_) async {
-        await rebuildSources(subscription, server);
+      late StreamSubscription<List<int>> subscription;
+      subscription = stdin.listen((event) async {
+        final input = utf8.decode(event).trim();
+
+        if (input == 'h' || input == 'help') {
+          print(blue('\nHelp'));
+          print('  h, help - Display this message');
+          print('  q, quit - Stops the server and quits the CLI');
+          print('  r, rebuild - Rebuilds the sources\n');
+        } else if (input == 'quit' ||
+            input == 'q' ||
+            input == 'exit' ||
+            input == 's' ||
+            input == 'stop') {
+          print('\n${blue('Stopping server...')}');
+          exit(0);
+        } else if (input == 'r' || input == 'restart') {
+          await rebuildSources(subscription, server);
+        }
+
         stdout.write(prefixTime(' :'));
       });
-    }
 
-    await subscription.asFuture();
+      if (enableHotRestart) {
+        Watcher(join(target, source))
+            .events
+            .throttle(Duration(milliseconds: hotRestartThrottleMilliseconds))
+            .listen((_) async {
+          await rebuildSources(subscription, server);
+          stdout.write(prefixTime(' :'));
+        });
+      }
+
+      await subscription.asFuture();
+    } on SocketException catch (e) {
+      printerr(red('Error starting server: ${e.osError == null ? e.message : e.osError!.message}'));
+      return 1;
+    } on FileSystemException catch (e) {
+      printerr(red('Error starting server: ${e.osError == null ? e.message : e.osError!.message}'));
+      return 1;
+    }
 
     return 0;
   }

@@ -194,7 +194,8 @@ class BundleCli with CommandTime {
         continue;
       } on FileSystemException catch (e) {
         stop();
-        printerr(red('Skipping "$source", ${e.message}${' - ${e.path}'}${' - ${e.osError}'}'));
+        printerr(red(
+            'Skipping "$source", ${e.message}: ${e.osError == null ? e.message : e.osError!.message}'));
         continue;
       } on Exception catch (e) {
         stop();
