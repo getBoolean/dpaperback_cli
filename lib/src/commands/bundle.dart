@@ -376,12 +376,18 @@ class BundleCli with CommandTime {
     final commonsTempDir = createTempDir();
     final commonResult = await installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
     if (commonResult.exitCode != 0) {
+      stop();
+      printerr(yellow(commonResult.stdout));
+      printerr(red(commonResult.stderr));
       await Directory(commonsTempDir).delete(recursive: true);
       return commonResult.exitCode;
     }
 
     final es6Result = await installJsPackage('es6', workingDirectory: commonsTempDir);
     if (es6Result.exitCode != 0) {
+      stop();
+      printerr(yellow(es6Result.stdout));
+      printerr(red(es6Result.stderr));
       await Directory(commonsTempDir).delete(recursive: true);
       return es6Result.exitCode;
     }
@@ -389,6 +395,9 @@ class BundleCli with CommandTime {
     final browserifyResult =
         await installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
     if (browserifyResult.exitCode != 0) {
+      stop();
+      printerr(yellow(browserifyResult.stdout));
+      printerr(red(browserifyResult.stderr));
       await Directory(commonsTempDir).delete(recursive: true);
       return browserifyResult.exitCode;
     }
