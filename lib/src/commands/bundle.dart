@@ -400,7 +400,9 @@ class BundleCli with CommandTime {
         'cheerio',
         '-x',
         'fs',
-        '-o',
+        '-r',
+        'es6'
+            '-o',
         output,
       ],
       workingDirectory: tempDir,
