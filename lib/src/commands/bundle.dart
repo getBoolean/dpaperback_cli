@@ -237,6 +237,8 @@ class BundleCli with CommandTime {
         await File(file).delete();
       } else if (isDirectory(file)) {
         await Directory(file).delete(recursive: true);
+      } else if (isLink(file)) {
+        await Directory(file).delete(recursive: true);
       }
     }
 
