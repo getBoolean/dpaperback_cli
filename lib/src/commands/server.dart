@@ -290,9 +290,9 @@ class ServerCli with CommandTime {
 
   void printServerStarted(io.HttpServer server) {
     if (hideIpAddress) {
-      print(blue('\nStarting server at http://${'*' * 10}:${server.port}'));
+      print(blue('\nStarting server at ${green('http://${'*' * 10}:${server.port}')}${enableHotRestart ? grey(' (auto hot restart enabled)') : ''}'));
     } else {
-      print(blue('\nStarting server at http://${server.address.host}:${server.port}'));
+      print(blue('\nStarting server at ${green('http://${server.address.host}:${server.port}')}${enableHotRestart ? grey(' (auto hot restart enabled)') : ''}'));
     }
     print('\nFor a list of commands type ${green('h')} or ${green('help')}');
   }
