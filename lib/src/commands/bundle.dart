@@ -8,7 +8,6 @@ import 'package:dpaperback_cli/src/dcli/resource/generated/resource_registry.g.d
 import 'package:dpaperback_cli/src/utils/time_mixin.dart';
 import 'package:dpaperback_cli/src/utils/unpack_async.dart';
 import 'package:puppeteer/puppeteer.dart' as ppt;
-import 'package:puppeteer/puppeteer.dart';
 import 'package:riverpod/riverpod.dart';
 import 'package:yaml/yaml.dart';
 
@@ -133,7 +132,7 @@ class BundleCli with CommandTime {
   final String pubspecPath;
   final String? subfolder;
   final bool shouldGenerateHomepage;
-  late Future<Browser> futureBrowser;
+  late Future<ppt.Browser> futureBrowser;
 
   BundleCli({
     required this.output,
@@ -226,7 +225,7 @@ class BundleCli with CommandTime {
   }
 
   Future<Map<String, dynamic>> generateSourceInfo(
-      Browser browser, String source, String directoryPath) async {
+      ppt.Browser browser, String source, String directoryPath) async {
     final sourceJs = join(directoryPath, source, 'source.js');
     final sourceContents =
         await File(sourceJs).exists() ? await File(sourceJs).readAsString() : null;
