@@ -256,7 +256,7 @@ class ServerCli with CommandTime {
       printerr(red('Error starting server: ${e.osError == null ? e.message : e.osError!.message}'));
       return 1;
     } on FormatException catch (e) {
-      printerr(red('Error starting server: ${e.message}'));
+      printerr(red('Error starting server: ${e.message}\n${e.toString()}'));
       return 1;
     } on Exception catch (e) {
       printerr(red('Error starting server: ${e.toString()}'));
