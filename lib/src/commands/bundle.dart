@@ -317,6 +317,21 @@ class BundleCli with CommandTime {
   }
 
   Future<int> _compileSources(String tempBuildPath) async {
+    // Download paperback-extensions-common from npmjs.org
+    if (!await Directory(join(output, '.pb_cache')).exists()) {
+      await Directory(join(output, '.pb_cache')).create(recursive: true);
+    }
+    final minifiedLib = join(output, '.pb_cache', kMinifiedLibrary);
+    if (!await File(minifiedLib).exists()) {
+      time(prefix: 'Downloading dependencies');
+      final successCode = await _bundleJsDependencies(minifiedLib);
+      stop();
+      if (successCode != 0) {
+        printerr(red('Failed to bundle dependencies'));
+        return successCode;
+      }
+    }
+
     time(prefix: 'Compiling project');
 
     // TODO: Make async
@@ -346,33 +361,17 @@ class BundleCli with CommandTime {
         await Directory(tempSourceFolder).delete(recursive: true);
         continue;
       }
-
-
-      // Download paperback-extensions-common from npmjs.org
-      if (!await Directory(join(output, '.pb_cache')).exists()) {
-        await Directory(join(output, '.pb_cache')).create(recursive: true);
-      }
-      
-      final successCode = await _bundleJsDependencies(finalJsPath, sourcePath: tempJsPath);
-      if (successCode != 0) {
-        printerr(red('Failed to bundle with dependencies'));
-        await Directory(tempSourceFolder).delete(recursive: true);
-        continue;
-      }
-
-      // final bundleResult = await _bundleJS(
-      //   tempJsPath,
-      //   dependencyPath: minifiedLib,
-      //   output: finalJsPath,
-      //   workingDirectory: pwd,
-      // );
+      await File(minifiedLib).copy(finalJsPath);
+      await File(finalJsPath).writeAsString(
+        '\nvar self = global.self;\n',
+        mode: FileMode.append,
+      );
+      // append generated dart source to minified js dependencies
+      await File(finalJsPath).writeAsBytes(
+        await File(tempJsPath).readAsBytes(),
+        mode: FileMode.append,
+      );
       await File(tempJsPath).delete();
-      // if (bundleResult.exitCode != 0) {
-      //   printerr(yellow(bundleResult.stdout));
-      //   printerr(red(bundleResult.stderr));
-      //   await Directory(tempSourceFolder).delete(recursive: true);
-      //   continue;
-      // }
 
       // copy includes folder
       final includesPath = join(targetSource, 'includes');
@@ -391,7 +390,7 @@ class BundleCli with CommandTime {
     return 0;
   }
 
-  Future<int> _bundleJsDependencies(String outputFile, {required String sourcePath}) async {
+  Future<int> _bundleJsDependencies(String outputFile) async {
     // TODO: make async
     final commonsTempDir = createTempDir();
     final commonResult = await installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
@@ -424,8 +423,7 @@ class BundleCli with CommandTime {
     if (!await Directory(dirname(outputFile)).exists()) {
       await Directory(dirname(outputFile)).create(recursive: true);
     }
-    final bundleResult =
-        await _bundleCommons(commonsTempDir, output: outputFile, sourcePath: sourcePath);
+    final bundleResult = await _bundleCommons(commonsTempDir, output: outputFile);
     if (bundleResult.exitCode != 0) {
       stop();
       printerr(yellow(bundleResult.stdout));
@@ -437,15 +435,10 @@ class BundleCli with CommandTime {
     return 0;
   }
 
-  Future<ProcessResult> _bundleCommons(
-    String tempDir, {
-    required String output,
-    required String sourcePath,
-  }) async {
+  Future<ProcessResult> _bundleCommons(String tempDir, {required String output}) async {
     return await Process.run(
       'browserify',
       [
-        sourcePath,
         'node_modules/paperback-extensions-common/lib/index.js',
         '-s',
         'Sources',
@@ -463,35 +456,6 @@ class BundleCli with CommandTime {
         output,
       ],
       workingDirectory: tempDir,
-      // Must be true on windows,
-      // otherwise this exception is thrown:
-      // "The system cannot find the file specified.""
-      runInShell: Platform.isWindows,
-    );
-  }
-
-  Future<ProcessResult> _bundleJS(
-    String jsPath, {
-    required String dependencyPath,
-    required String workingDirectory,
-    required String output,
-  }) async {
-    return await Process.run(
-      'browserify',
-      [
-        jsPath,
-        '-r',
-        dependencyPath,
-        '-x',
-        'axios',
-        '-x',
-        'cheerio',
-        '-x',
-        'fs',
-        '-o',
-        output,
-      ],
-      workingDirectory: workingDirectory,
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified.""
