@@ -363,7 +363,7 @@ class BundleCli with CommandTime {
       }
       await File(minifiedLib).copy(finalJsPath);
       await File(finalJsPath).writeAsString(
-        '\nvar self = global.self;\n',
+        '\nself = window;\n',
         mode: FileMode.append,
       );
       // append generated dart source to minified js dependencies
