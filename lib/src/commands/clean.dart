@@ -59,22 +59,22 @@ class CleanCli with CommandTime {
 
   Future<int> run() async {
     final bundles = join(dir, 'bundles');
-    if (await Directory(bundles).exists()) {
+    if (Directory(bundles).existsSync()) {
       await Directory(bundles).delete(recursive: true);
     }
 
     final tempBuild = join(dir, 'temp_build');
-    if (await Directory(tempBuild).exists()) {
+    if (Directory(tempBuild).existsSync()) {
       await Directory(tempBuild).delete(recursive: true);
     }
 
     final localChromium = join(dir, '.local-chromium');
-    if (await Directory(localChromium).exists()) {
+    if (Directory(localChromium).existsSync()) {
       await Directory(localChromium).delete(recursive: true);
     }
 
     final paperbackCache = join(dir, '.pb_cache');
-    if (await Directory(paperbackCache).exists()) {
+    if (Directory(paperbackCache).existsSync()) {
       await Directory(paperbackCache).delete(recursive: true);
     }
 

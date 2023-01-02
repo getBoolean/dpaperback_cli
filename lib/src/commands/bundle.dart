@@ -116,7 +116,7 @@ class Bundle extends Command<int> {
     final outputArgument = command['output'] as String;
     final outputPath = canonicalize(outputArgument);
 
-    if (!await Directory(outputPath).exists()) {
+    if (!Directory(outputPath).existsSync()) {
       await Directory(outputPath).create(recursive: true);
     }
     return outputPath;
@@ -228,7 +228,7 @@ class BundleCli with CommandTime {
       ppt.Browser browser, String source, String directoryPath) async {
     final sourceJs = join(directoryPath, source, 'source.js');
     final sourceContents =
-        await File(sourceJs).exists() ? await File(sourceJs).readAsString() : null;
+        File(sourceJs).existsSync() ? await File(sourceJs).readAsString() : null;
     if (sourceContents == null) {
       throw FileNotFoundException(sourceJs);
     }
@@ -244,7 +244,7 @@ class BundleCli with CommandTime {
 
   Future<int> bundleSources() async {
     final workingDirectory = join(output, 'bundles', subfolder);
-    if (!await Directory(workingDirectory).exists()) {
+    if (!Directory(workingDirectory).existsSync()) {
       await Directory(workingDirectory).create(recursive: true);
     }
     final paths = find('*', workingDirectory: workingDirectory, recursive: false, types: [
@@ -254,17 +254,17 @@ class BundleCli with CommandTime {
     ]).toList();
 
     for (final path in paths) {
-      if (await FileSystemEntity.isFile(path)) {
+      if (FileSystemEntity.isFileSync(path)) {
         await File(path).delete();
-      } else if (await FileSystemEntity.isDirectory(path)) {
+      } else if (FileSystemEntity.isDirectorySync(path)) {
         await Directory(path).delete(recursive: true);
-      } else if (await FileSystemEntity.isLink(path)) {
+      } else if (FileSystemEntity.isLinkSync(path)) {
         await Link(path).delete();
       }
     }
 
     final tempBuildPath = join(output, 'temp_build');
-    if (!await Directory(tempBuildPath).exists()) {
+    if (!Directory(tempBuildPath).existsSync()) {
       await Directory(tempBuildPath).create(recursive: true);
     }
     final successCode = await _compileSources(tempBuildPath);
@@ -275,7 +275,7 @@ class BundleCli with CommandTime {
     final baseBundlesPath = join(output, 'bundles');
     final bundlesPath = join(baseBundlesPath, subfolder, source);
     if (source != null) {
-      if (await Directory(bundlesPath).exists()) {
+      if (Directory(bundlesPath).existsSync()) {
         await Directory(bundlesPath).delete(recursive: true);
       }
       await Directory(bundlesPath).create(recursive: true);
@@ -283,7 +283,7 @@ class BundleCli with CommandTime {
 
     final directoryPath = join(tempBuildPath, source);
     final targetDirPath = bundlesPath;
-    if (!await Directory(targetDirPath).exists()) {
+    if (!Directory(targetDirPath).existsSync()) {
       await Directory(targetDirPath).create(recursive: true);
     }
 
@@ -318,11 +318,11 @@ class BundleCli with CommandTime {
 
   Future<int> _compileSources(String tempBuildPath) async {
     // Download paperback-extensions-common from npmjs.org
-    if (!await Directory(join(output, '.pb_cache')).exists()) {
+    if (!Directory(join(output, '.pb_cache')).existsSync()) {
       await Directory(join(output, '.pb_cache')).create(recursive: true);
     }
     final minifiedLib = join(output, '.pb_cache', kMinifiedLibrary);
-    if (!await File(minifiedLib).exists()) {
+    if (!File(minifiedLib).existsSync()) {
       time(prefix: 'Downloading dependencies');
       final successCode = await _bundleJsDependencies(minifiedLib);
       stop();
@@ -341,7 +341,7 @@ class BundleCli with CommandTime {
     for (final targetSource in sources) {
       final sourceFile = '${basename(targetSource)}.dart';
       final sourcePath = join(targetSource, sourceFile);
-      if (!await File(sourcePath).exists()) {
+      if (!File(sourcePath).existsSync()) {
         printerr(yellow(
           'Skipping "${basename(targetSource)}", expected source file "$sourceFile" not found',
         ));
@@ -352,7 +352,7 @@ class BundleCli with CommandTime {
       final tempSourceFolder = join(tempBuildPath, basename(targetSource));
       final tempJsPath = join(tempSourceFolder, 'temp.source.js');
       final finalJsPath = join(tempSourceFolder, 'source.js');
-      if (!await File(tempSourceFolder).exists()) {
+      if (!File(tempSourceFolder).existsSync()) {
         await Directory(tempSourceFolder).create(recursive: true);
       }
 
@@ -375,9 +375,9 @@ class BundleCli with CommandTime {
 
       // copy includes folder
       final includesPath = join(targetSource, 'includes');
-      if (await Directory(includesPath).exists()) {
+      if (Directory(includesPath).existsSync()) {
         final includesDestPath = join(tempSourceFolder, 'includes');
-        if (!await Directory(includesDestPath).exists()) {
+        if (!Directory(includesDestPath).existsSync()) {
           await Directory(includesDestPath).create(recursive: true);
         }
 
@@ -420,7 +420,7 @@ class BundleCli with CommandTime {
       await Directory(commonsTempDir).delete(recursive: true);
       return browserifyResult.exitCode;
     }
-    if (!await Directory(dirname(outputFile)).exists()) {
+    if (!Directory(dirname(outputFile)).existsSync()) {
       await Directory(dirname(outputFile)).create(recursive: true);
     }
     final bundleResult = await _bundleCommons(commonsTempDir, output: outputFile);
@@ -497,7 +497,7 @@ class BundleCli with CommandTime {
   Future<int> generateHomepage() async {
     // TODO: Add check at start of bundle for pubspec required paperback fields
     final pubspecFile = File(pubspecPath);
-    if (!await pubspecFile.exists()) {
+    if (!pubspecFile.existsSync()) {
       stop();
       printerr(yellow('Warning: Could not find pubspec.yaml'));
       printerr(yellow('Skipping homepage generation\n'));
@@ -570,13 +570,13 @@ class BundleCli with CommandTime {
     }
 
     final cacheDir = join(pwd, '.pb_cache');
-    if (!await Directory(cacheDir).exists()) {
+    if (!Directory(cacheDir).existsSync()) {
       await Directory(cacheDir).create(recursive: true);
     }
 
     // Increment version number if you change the homepage.pug file
     final pugPath = join(cacheDir, 'homepage_v1.pug');
-    if (!await File(pugPath).exists()) {
+    if (!File(pugPath).existsSync()) {
       final pugResource = ResourceRegistry.resources['website_generation/homepage.pug']!;
       await pugResource.unpackAsync(pugPath);
     }
@@ -593,18 +593,18 @@ class BundleCli with CommandTime {
     stop();
 
     final optionsFile = File(join(cacheDir, 'options.json'));
-    if (!await optionsFile.exists()) {
+    if (!optionsFile.existsSync()) {
       await optionsFile.create(recursive: true);
     }
 
     await optionsFile.writeAsString(json.encode(repositoryData), flush: true);
 
-    if (!await optionsFile.exists()) {
+    if (!optionsFile.existsSync()) {
       printerr(red('Warning: Could not find options.json'));
       printerr(red('Skipping homepage generation\n'));
       return 2;
     }
-    if (!await File(pugPath).exists()) {
+    if (!File(pugPath).existsSync()) {
       printerr(red('Warning: Could not pug at "$pugPath"'));
       printerr(red('Skipping homepage generation\n'));
       return 2;
@@ -655,7 +655,7 @@ class BundleCli with CommandTime {
   Future<ProcessResult> runPugCompile(String optionsFile, {required String pugPath}) async {
     final dir = createTempDir();
     final bundlesDir = join(output, 'bundles', subfolder);
-    if (!await Directory(bundlesDir).exists()) {
+    if (!Directory(bundlesDir).existsSync()) {
       await Directory(bundlesDir).create(recursive: true);
     }
     final process = await Process.run(

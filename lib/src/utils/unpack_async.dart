@@ -7,11 +7,11 @@ extension UnpackAsync on PackedResource {
   /// Unpacks a resource saving it
   /// to the file at [pathTo].
   Future<void> unpackAsync(String pathTo) async {
-    if (await File(pathTo).exists() && !await FileSystemEntity.isFile(pathTo)) {
+    if (File(pathTo).existsSync() && !FileSystemEntity.isFileSync(pathTo)) {
       throw Exception('The unpack target $pathTo must be a file');
     }
     final normalized = normalize(pathTo);
-    if (!await Directory(dirname(normalized)).exists()) {
+    if (!Directory(dirname(normalized)).existsSync()) {
       await Directory(dirname(normalized)).create(recursive: true);
     }
 

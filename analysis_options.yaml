@@ -36,6 +36,8 @@ linter:
     # public_member_api_docs: true
     slash_for_doc_comments: true
 
+    avoid_slow_async_io: true
+
 analyzer:
   errors:
     todo: ignore
