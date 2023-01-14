@@ -30,6 +30,12 @@ class Bundle extends Command<int> {
         negatable: true,
         defaultsTo: true,
       )
+      ..addFlag(
+        'minified-output',
+        help: 'Generate minified JavaScript',
+        negatable: true,
+        defaultsTo: true,
+      )
       ..addSeparator('Options:')
       ..addOption('output',
           abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
@@ -77,6 +83,7 @@ class Bundle extends Command<int> {
     final source = results['source'] as String?;
     final commonsPackage = results['paperback-extensions-common'] as String;
     final shouldGenerateHomepage = results['homepage'] as bool;
+    final minifiedOutput = results['minified-output'] as bool;
 
     return BundleCli(
       output: output,
@@ -87,6 +94,7 @@ class Bundle extends Command<int> {
       pubspecPath: pubspecPath,
       subfolder: results['subfolder'] as String?,
       shouldGenerateHomepage: shouldGenerateHomepage,
+      minifyOutput: minifiedOutput,
     ).run();
   }
 
@@ -132,6 +140,7 @@ class BundleCli with CommandTime {
   final String pubspecPath;
   final String? subfolder;
   final bool shouldGenerateHomepage;
+  final bool minifyOutput;
   late Future<ppt.Browser> futureBrowser;
 
   BundleCli({
@@ -143,6 +152,7 @@ class BundleCli with CommandTime {
     required this.pubspecPath,
     required this.subfolder,
     required this.shouldGenerateHomepage,
+    required this.minifyOutput,
   });
 
   Future<int> run() async {
@@ -227,8 +237,7 @@ class BundleCli with CommandTime {
   Future<Map<String, dynamic>> generateSourceInfo(
       ppt.Browser browser, String source, String directoryPath) async {
     final sourceJs = join(directoryPath, source, 'source.js');
-    final sourceContents =
-        File(sourceJs).existsSync() ? await File(sourceJs).readAsString() : null;
+    final sourceContents = File(sourceJs).existsSync() ? await File(sourceJs).readAsString() : null;
     if (sourceContents == null) {
       throw FileNotFoundException(sourceJs);
     }
@@ -363,7 +372,7 @@ class BundleCli with CommandTime {
         await Directory(tempSourceFolder).create(recursive: true);
       }
 
-      final exitCode = await runDartJsCompiler(sourcePath, output: tempJsPath);
+      final exitCode = await runDartJsCompiler(sourcePath, output: tempJsPath, minify: minifyOutput);
       if (exitCode != 0) {
         await Directory(tempSourceFolder).delete(recursive: true);
         continue;

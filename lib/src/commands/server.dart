@@ -31,6 +31,12 @@ class Server extends Command<int> {
       ..addFlag('hot-restart', negatable: true, help: 'Rebuild sources on save', defaultsTo: true)
       ..addFlag('hide-ip-address',
           help: 'Hide the ip address when the server starts', negatable: false)
+      ..addFlag(
+        'minified-output',
+        help: 'Generate minified JavaScript',
+        negatable: true,
+        defaultsTo: true,
+      )
       ..addSeparator('Options:')
       ..addOption('subfolder',
           abbr: 'f',
@@ -91,6 +97,7 @@ class Server extends Command<int> {
     final hideIpAddress = results['hide-ip-address'] as bool;
     final subfolder = results['subfolder'] as String?;
     final shouldGenerateHomepage = results['homepage'] as bool;
+    final minifiedOutput = results['minified-output'] as bool;
     if (hotRestartThrottleMilliseconds == null || hotRestartThrottleMilliseconds < 1000) {
       printerr(red('Invalid hot restart throttle value. Must be 1000 or greater'));
       return 2;
@@ -107,6 +114,7 @@ class Server extends Command<int> {
         container: container,
         pubspecPath: pubspecPath,
         shouldGenerateHomepage: shouldGenerateHomepage,
+        minifyOutput: minifiedOutput,
       ).run();
     }
     final successCode = ServerCli(
@@ -123,6 +131,7 @@ class Server extends Command<int> {
       pubspecPath: pubspecPath,
       subfolder: subfolder,
       shouldGenerateHomepage: shouldGenerateHomepage,
+        minifyOutput: minifiedOutput,
     ).run();
 
     return successCode;
@@ -175,6 +184,7 @@ class ServerCli with CommandTime {
   final String pubspecPath;
   final String? subfolder;
   final bool shouldGenerateHomepage;
+  final bool minifyOutput;
 
   ServerCli({
     required this.output,
@@ -190,6 +200,7 @@ class ServerCli with CommandTime {
     required this.hideIpAddress,
     required this.subfolder,
     required this.shouldGenerateHomepage,
+    required this.minifyOutput,
   });
 
   Future<int> run() async {
@@ -279,6 +290,7 @@ class ServerCli with CommandTime {
       pubspecPath: pubspecPath,
       subfolder: subfolder,
       shouldGenerateHomepage: shouldGenerateHomepage,
+      minifyOutput: minifyOutput,
     ).run();
     if (exitCode != 0) {
       printerr(prefixTime() + red('Failed to build sources, stopping server...'));
@@ -290,9 +302,11 @@ class ServerCli with CommandTime {
 
   void printServerStarted(io.HttpServer server) {
     if (hideIpAddress) {
-      print(blue('\nStarting server at ${green('http://${'*' * 10}:${server.port}')}${enableHotRestart ? grey(' (auto hot restart enabled)') : ''}'));
+      print(blue(
+          '\nStarting server at ${green('http://${'*' * 10}:${server.port}')}${enableHotRestart ? grey(' (auto hot restart enabled)') : ''}'));
     } else {
-      print(blue('\nStarting server at ${green('http://${server.address.host}:${server.port}')}${enableHotRestart ? grey(' (auto hot restart enabled)') : ''}'));
+      print(blue(
+          '\nStarting server at ${green('http://${server.address.host}:${server.port}')}${enableHotRestart ? grey(' (auto hot restart enabled)') : ''}'));
     }
     print('\nFor a list of commands type ${green('h')} or ${green('help')}');
   }
