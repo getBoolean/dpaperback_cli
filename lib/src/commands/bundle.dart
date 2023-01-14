@@ -235,8 +235,15 @@ class BundleCli with CommandTime {
     final page = await browser.newPage();
 
     await page.evaluate(sourceContents);
-    final String sourceId = await page.evaluate(kCliPrefix);
-    final Map<String, dynamic> sourceInfo = await page.evaluate('${sourceId}Info');
+    // TODO: Find another way to get the source id. This might break if multiple sources are bundled
+    final String? sourceId = await page.evaluate('Sources.$kCliPrefix');
+    if (sourceId == null) {
+      throw Exception('Could not find source id for $source');
+    }
+    final Map<String, dynamic>? sourceInfo = await page.evaluate('Sources.${sourceId}Info');
+    if (sourceInfo == null) {
+      throw Exception('Could not find source info for $source');
+    }
     sourceInfo['id'] = sourceId;
 
     return sourceInfo;
