@@ -11,7 +11,6 @@ import 'package:puppeteer/puppeteer.dart' as ppt;
 import 'package:riverpod/riverpod.dart';
 import 'package:yaml/yaml.dart';
 
-const kMinifiedLibrary = 'lib.min.js';
 const kBrowserifyPackage = 'browserify@^17';
 const kPugPackage = '@anduh/pug-cli@^1.0.0-alpha8';
 const kCliPrefix = '\$SourceId\$';
@@ -203,7 +202,11 @@ class BundleCli with CommandTime {
       final source = basename(dir);
       try {
         time(prefix: '- Generating $source Info');
-        final sourceInfo = await generateSourceInfo(browser, source, bundlesPath);
+        final sourceInfo = await generateSourceInfo(
+          browser: browser,
+          source: source,
+          bundlesPath: bundlesPath,
+        );
         final sourceId = sourceInfo['id'];
         Directory(dir).renameSync(join(dirname(dir), sourceId));
         (versioningFileMap['sources']! as List).add(sourceInfo);
@@ -234,9 +237,12 @@ class BundleCli with CommandTime {
     print((blue('Total Versioning File: ${versionTimer.elapsedMilliseconds}ms', bold: true)));
   }
 
-  Future<Map<String, dynamic>> generateSourceInfo(
-      ppt.Browser browser, String source, String directoryPath) async {
-    final sourceJs = join(directoryPath, source, 'source.js');
+  Future<Map<String, dynamic>> generateSourceInfo({
+    required ppt.Browser browser,
+    required String source,
+    required String bundlesPath,
+  }) async {
+    final sourceJs = join(bundlesPath, source, 'source.js');
     final sourceContents = File(sourceJs).existsSync() ? await File(sourceJs).readAsString() : null;
     if (sourceContents == null) {
       throw FileNotFoundException(sourceJs);
@@ -283,7 +289,36 @@ class BundleCli with CommandTime {
     if (!Directory(tempBuildPath).existsSync()) {
       await Directory(tempBuildPath).create(recursive: true);
     }
-    final successCode = await _compileSources(tempBuildPath);
+
+    // Install CLIs to cache directory
+    final cachePath = join(output, '.pb_cache');
+    if (!Directory(cachePath).existsSync()) {
+      await Directory(cachePath).create(recursive: true);
+    }
+    final cliCachePath = join(cachePath, 'clis');
+    final cliInstallCode = await installCliPackages(cliCachePath);
+    if (cliInstallCode != 0) {
+      return cliInstallCode;
+    }
+
+    // final webdevInstallCode = await installGlobalWebdev(workingDirectory);
+    // if (webdevInstallCode.exitCode != 0) {
+    //   return webdevInstallCode.exitCode;
+    // }
+
+    // Download and cache paperback-extensions-common from npmjs.org to cache directory
+    final commonPath = join(cachePath, 'common');
+    final commonCode = await downloadPaperbackExtensionsCommon(outputPath: commonPath);
+    if (commonCode != 0) {
+      return commonCode;
+    }
+
+    final successCode = await _compileSources(
+      tempBuildPath: tempBuildPath,
+      cliCachePath: cliCachePath,
+      commonPath: commonPath,
+      cachePath: cachePath,
+    );
     if (successCode != 0) {
       return successCode;
     }
@@ -332,67 +367,100 @@ class BundleCli with CommandTime {
     );
   }
 
-  Future<int> _compileSources(String tempBuildPath) async {
-    // Download paperback-extensions-common from npmjs.org
-    if (!Directory(join(output, '.pb_cache')).existsSync()) {
-      await Directory(join(output, '.pb_cache')).create(recursive: true);
-    }
-    final minifiedLib = join(output, '.pb_cache', kMinifiedLibrary);
-    if (!File(minifiedLib).existsSync()) {
-      time(prefix: 'Downloading dependencies');
-      final successCode = await _bundleJsDependencies(minifiedLib);
-      stop();
-      if (successCode != 0) {
-        printerr(red('Failed to bundle dependencies'));
-        return successCode;
-      }
-    }
-
-    time(prefix: 'Compiling project');
-
-    // TODO: Make async
+  Future<int> _compileSources({
+    required String tempBuildPath,
+    required String cliCachePath,
+    required String commonPath,
+    required String cachePath,
+  }) async {
+    final compileTimer = Stopwatch()..start();
     final sources = source != null
         ? [join(target, source)]
         : find('*', workingDirectory: target, types: [Find.directory], recursive: false).toList();
     for (final targetSource in sources) {
-      final sourceFile = '${basename(targetSource)}.dart';
+      final sourceName = basename(targetSource);
+      time(prefix: 'Compiling "$sourceName"');
+      final sourceFile = '$sourceName.dart';
       final sourcePath = join(targetSource, sourceFile);
       if (!File(sourcePath).existsSync()) {
+        stop();
         printerr(yellow(
-          'Skipping "${basename(targetSource)}", expected source file "$sourceFile" not found',
+          'Skipping "$sourceName", expected source file "$sourceFile" not found',
         ));
         continue;
       }
 
-      // compile source to js
-      final tempSourceFolder = join(tempBuildPath, basename(targetSource));
-      final tempJsPath = join(tempSourceFolder, 'temp.source.js');
-      final finalJsPath = join(tempSourceFolder, 'source.js');
-      if (!File(tempSourceFolder).existsSync()) {
-        await Directory(tempSourceFolder).create(recursive: true);
+      final tempSourceBuildFolder = join(tempBuildPath, sourceName);
+      final tempJsPath = join(tempSourceBuildFolder, 'temp.source.js');
+      if (!File(tempSourceBuildFolder).existsSync()) {
+        await Directory(tempSourceBuildFolder).create(recursive: true);
       }
 
-      final exitCode = await runDartJsCompiler(sourcePath, output: tempJsPath, minify: minifyOutput);
+      // Compile source to JavaScript
+      final exitCode = await runDartJsCompiler(
+        sourcePath,
+        output: tempJsPath,
+        minify: minifyOutput,
+      );
       if (exitCode != 0) {
-        await Directory(tempSourceFolder).delete(recursive: true);
+        stop();
+        await Directory(tempSourceBuildFolder).delete(recursive: true);
+        printerr(yellow('Skipping "$sourceName", dart to js compilation failed.'));
         continue;
       }
-      await File(minifiedLib).copy(finalJsPath);
-      await File(finalJsPath).writeAsString(
-        '\nconst self = globalThis;\n',
-        mode: FileMode.append,
-      );
-      // append generated dart source to minified js dependencies
-      await File(finalJsPath).writeAsBytes(
-        await File(tempJsPath).readAsBytes(),
-        mode: FileMode.append,
-      );
-      await File(tempJsPath).delete();
 
-      // copy includes folder
+      // Append `const self = g;` to the top of the `tempJsPath` file
+      final tempJsFile = File(tempJsPath);
+      try {
+        final tempJsContents = await tempJsFile.readAsString();
+        final globalPrefix = '''var g;
+    if (typeof window !== "undefined") {
+      g = window;
+    } else if (typeof global !== "undefined") {
+      g = global;
+    } else if (typeof self !== "undefined") {
+      g = self;
+    } else {
+      g = this;
+    }
+    var self = g;''';
+        await tempJsFile.writeAsString(/*'const self = globalThis;*/ tempJsContents);
+      } on FileSystemException catch (e) {
+        stop();
+        await Directory(tempSourceBuildFolder).delete(recursive: true);
+        printerr(yellow('Skipping "$sourceName", ${e.message}'));
+        continue;
+      }
+
+      // Bundle using browserify, entry point is the cached js dependencies,
+      // and require the compiled source JS file
+      final finalJsPath = join(tempSourceBuildFolder, 'source.js');
+
+      final bundleResult = await runBrowserify(
+        require: tempJsPath,
+        output: finalJsPath,
+        workingDirectory: cachePath,
+      );
+      if (bundleResult.exitCode != 0) {
+        stop();
+        await tempJsFile.delete();
+        final String stderr = bundleResult.stderr;
+        if (stderr.isNotEmpty) {
+          printerr(orange(stderr));
+        }
+        final String stdout = bundleResult.stderr;
+        if (stdout.isNotEmpty) {
+          printerr(yellow(stdout));
+        }
+        printerr(yellow('Skipping "$sourceName", js bundle failed.'));
+        continue;
+      }
+      await tempJsFile.delete();
+
+      // Write the bundled file and the source includes directory to the bundles source directory
       final includesPath = join(targetSource, 'includes');
       if (Directory(includesPath).existsSync()) {
-        final includesDestPath = join(tempSourceFolder, 'includes');
+        final includesDestPath = join(tempSourceBuildFolder, 'includes');
         if (!Directory(includesDestPath).existsSync()) {
           await Directory(includesDestPath).create(recursive: true);
         }
@@ -400,78 +468,99 @@ class BundleCli with CommandTime {
         // TODO: Make async
         copyTree(includesPath, includesDestPath, overwrite: true);
       }
+      stop();
     }
 
-    stop();
+    compileTimer.stop();
+    print((blue('Total Project Compile: ${compileTimer.elapsedMilliseconds}ms')));
     return 0;
   }
 
-  Future<int> _bundleJsDependencies(String outputFile) async {
-    // TODO: make async
-    final commonsTempDir = createTempDir();
-    final commonResult = await installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
-    if (commonResult.exitCode != 0) {
+  Future<int> downloadPaperbackExtensionsCommon({required String outputPath}) async {
+    if (!Directory(outputPath).existsSync()) {
+      await Directory(outputPath).create(recursive: true);
+      time(prefix: 'Downloading paperback-extensions-common');
+      final commonResult = await installJsPackage(
+        commonsPackage,
+        workingDirectory: outputPath,
+      );
       stop();
-      printerr(yellow(commonResult.stdout));
-      printerr(red(commonResult.stderr));
-      await Directory(commonsTempDir).delete(recursive: true);
-      return commonResult.exitCode;
+      if (commonResult.exitCode != 0) {
+        printerr(red('Failed to download paperback-extensions-common'));
+        return commonResult.exitCode;
+      }
     }
-
-    final es6Result = await installJsPackage('es6', workingDirectory: commonsTempDir);
-    if (es6Result.exitCode != 0) {
-      stop();
-      printerr(yellow(es6Result.stdout));
-      printerr(red(es6Result.stderr));
-      await Directory(commonsTempDir).delete(recursive: true);
-      return es6Result.exitCode;
-    }
-
-    final browserifyResult =
-        await installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
-    if (browserifyResult.exitCode != 0) {
-      stop();
-      printerr(yellow(browserifyResult.stdout));
-      printerr(red(browserifyResult.stderr));
-      await Directory(commonsTempDir).delete(recursive: true);
-      return browserifyResult.exitCode;
-    }
-    if (!Directory(dirname(outputFile)).existsSync()) {
-      await Directory(dirname(outputFile)).create(recursive: true);
-    }
-    final bundleResult = await _bundleCommons(commonsTempDir, output: outputFile);
-    if (bundleResult.exitCode != 0) {
-      stop();
-      printerr(yellow(bundleResult.stdout));
-      printerr(red(bundleResult.stderr));
-      await Directory(commonsTempDir).delete(recursive: true);
-      return bundleResult.exitCode;
-    }
-    await Directory(commonsTempDir).delete(recursive: true);
     return 0;
   }
 
-  Future<ProcessResult> _bundleCommons(String tempDir, {required String output}) async {
+  Future<ProcessResult> installGlobalWebdev(String workingDirectory) async {
     return await Process.run(
-      'browserify',
+      'dart',
       [
-        'node_modules/paperback-extensions-common/lib/index.js',
+        'pub',
+        'global',
+        'activate',
+        'webdev',
+      ],
+      workingDirectory: workingDirectory,
+      // Must be true on windows,
+      // otherwise this exception is thrown:
+      // "The system cannot find the file specified.""
+      runInShell: Platform.isWindows,
+    );
+  }
+
+  Future<int> installCliPackages(String cliCachePath) async {
+    if (!Directory(cliCachePath).existsSync()) {
+      await Directory(cliCachePath).create(recursive: true);
+
+      final clis = [
+        kBrowserifyPackage,
+        kPugPackage,
+      ];
+
+      for (final cli in clis) {
+        time(prefix: 'Installing $cli');
+        final installResult = await installJsPackage(cli, workingDirectory: cliCachePath);
+        if (installResult.exitCode != 0) {
+          printerr(red('Failed to install $cli'));
+          printerr(installResult.stdout);
+          printerr(installResult.stderr);
+          return installResult.exitCode;
+        }
+        stop();
+      }
+    }
+
+    return 0;
+  }
+
+  Future<ProcessResult> runBrowserify({
+    required String require,
+    required String output,
+    required String workingDirectory,
+  }) async {
+    return await Process.run(
+      'node',
+      [
+        './clis/node_modules/browserify/bin/cmd.js',
+        require,
         '-s',
         'Sources',
+        '-r',
+        './common/node_modules/paperback-extensions-common/lib/index.js',
         '-i',
-        './node_modules/paperback-extensions-common/dist/APIWrapper.js',
+        './common/node_modules/paperback-extensions-common/dist/APIWrapper.js',
         '-x',
         'axios',
         '-x',
         'cheerio',
         '-x',
         'fs',
-        '-r',
-        'es6',
         '-o',
         output,
       ],
-      workingDirectory: tempDir,
+      workingDirectory: workingDirectory,
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified.""
@@ -483,24 +572,28 @@ class BundleCli with CommandTime {
   /// The compiled js file will be saved to [output].
   ///
   /// Returns the exit code of the process.
-  Future<int> runDartJsCompiler(
-    String script, {
-    required String output,
-    bool minify = true,
-  }) async {
+  Future<int> runDartJsCompiler(String script, {required String output, bool minify = true}) async {
     final process = await Process.run(
       'dart',
-      ['compile', 'js', script, '-o', output, if (minify) '-m', '--no-source-maps'],
+      [
+        'compile',
+        'js',
+        script,
+        '-O2',
+        '-o',
+        output,
+        if (minify) '-m',
+        '--no-source-maps',
+      ],
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified.""
       runInShell: Platform.isWindows,
     );
     if (process.exitCode != 0) {
-      printerr(yellow('Warning: Could not compile $script'));
       printerr(process.stdout);
       printerr(process.stderr);
-      print(yellow('Continuing...\n'));
+      printerr(yellow('Skipping "${basename(script)}", dart to js compilation failed.'));
       return process.exitCode;
     }
     if (exists('$output.deps')) {
