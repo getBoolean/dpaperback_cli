@@ -14,3 +14,4 @@ temp_build
 
 # IDEs
 .vscode/launch.json
+pubspec.lock
