@@ -7,7 +7,8 @@ import 'package:riverpod/riverpod.dart';
 
 class Clean extends Command<int> {
   final ProviderContainer container;
-  Clean([ProviderContainer? container]) : container = container ?? ProviderContainer() {
+  Clean([ProviderContainer? container])
+      : container = container ?? ProviderContainer() {
     argParser
       ..addSeparator('Flags:')
       ..addOption(
@@ -18,7 +19,8 @@ class Clean extends Command<int> {
       );
   }
   @override
-  String get description => 'Deletes the bundles directory and the versioning file';
+  String get description =>
+      'Deletes the bundles directory and the versioning file';
 
   @override
   String get name => 'clean';

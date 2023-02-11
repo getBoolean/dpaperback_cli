@@ -16,12 +16,14 @@ const kBrowserifyPackage = 'browserify@^17';
 const kPugPackage = '@anduh/pug-cli@^1.0.0-alpha8';
 const kCliPrefix = '\$SourceId\$';
 
-final browserProvider = FutureProvider.autoDispose((_) => ppt.puppeteer.launch());
+final browserProvider =
+    FutureProvider.autoDispose((_) => ppt.puppeteer.launch());
 
 class Bundle extends Command<int> {
   final ProviderContainer container;
 
-  Bundle([ProviderContainer? container]) : container = container ?? ProviderContainer() {
+  Bundle([ProviderContainer? container])
+      : container = container ?? ProviderContainer() {
     argParser
       ..addSeparator('Flags:')
       ..addFlag(
@@ -38,13 +40,21 @@ class Bundle extends Command<int> {
       )
       ..addSeparator('Options:')
       ..addOption('output',
-          abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
+          abbr: 'o',
+          help: 'The output directory.',
+          defaultsTo: './',
+          valueHelp: 'folder')
       ..addOption('target',
-          abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
-      ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
+          abbr: 't',
+          help: 'The directory with sources.',
+          defaultsTo: 'lib',
+          valueHelp: 'folder')
+      ..addOption('source',
+          abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
       ..addOption('subfolder',
           abbr: 'f',
-          help: 'The subfolder under "bundles" folder the generated sources will be built at.',
+          help:
+              'The subfolder under "bundles" folder the generated sources will be built at.',
           valueHelp: 'folder')
       ..addOption(
         'paperback-extensions-common',
@@ -177,7 +187,8 @@ class BundleCli with CommandTime {
     }
 
     executionTimer.stop();
-    print((blue('Total Execution time: ${executionTimer.elapsedMilliseconds}ms', bold: true)));
+    print((blue('Total Execution time: ${executionTimer.elapsedMilliseconds}ms',
+        bold: true)));
     return 0;
   }
 
@@ -203,7 +214,8 @@ class BundleCli with CommandTime {
       final source = basename(dir);
       try {
         time(prefix: '- Generating $source Info');
-        final sourceInfo = await generateSourceInfo(browser, source, bundlesPath);
+        final sourceInfo =
+            await generateSourceInfo(browser, source, bundlesPath);
         final sourceId = sourceInfo['id'];
         Directory(dir).renameSync(join(dirname(dir), sourceId));
         (versioningFileMap['sources']! as List).add(sourceInfo);
@@ -214,7 +226,8 @@ class BundleCli with CommandTime {
         continue;
       } on DCliException catch (e) {
         stop();
-        printerr(red('Skipping "$source", ${e.message}${e.cause != null ? ' - ${e.cause}' : ''}'));
+        printerr(red(
+            'Skipping "$source", ${e.message}${e.cause != null ? ' - ${e.cause}' : ''}'));
         continue;
       } on FileSystemException catch (e) {
         stop();
@@ -229,15 +242,19 @@ class BundleCli with CommandTime {
     }
     unawaited(browser.close());
     final versioningFileContents = jsonEncode(versioningFileMap);
-    await File(join(bundlesPath, 'versioning.json')).writeAsString(versioningFileContents);
+    await File(join(bundlesPath, 'versioning.json'))
+        .writeAsString(versioningFileContents);
     versionTimer.stop();
-    print((blue('Total Versioning File: ${versionTimer.elapsedMilliseconds}ms', bold: true)));
+    print((blue('Total Versioning File: ${versionTimer.elapsedMilliseconds}ms',
+        bold: true)));
   }
 
   Future<Map<String, dynamic>> generateSourceInfo(
       ppt.Browser browser, String source, String directoryPath) async {
     final sourceJs = join(directoryPath, source, 'source.js');
-    final sourceContents = File(sourceJs).existsSync() ? await File(sourceJs).readAsString() : null;
+    final sourceContents = File(sourceJs).existsSync()
+        ? await File(sourceJs).readAsString()
+        : null;
     if (sourceContents == null) {
       throw FileNotFoundException(sourceJs);
     }
@@ -249,7 +266,8 @@ class BundleCli with CommandTime {
     if (sourceId == null) {
       throw Exception('Could not find source id for $source');
     }
-    final Map<String, dynamic>? sourceInfo = await page.evaluate('Sources.${sourceId}Info');
+    final Map<String, dynamic>? sourceInfo =
+        await page.evaluate('Sources.${sourceId}Info');
     if (sourceInfo == null) {
       throw Exception('Could not find source info for $source');
     }
@@ -263,7 +281,8 @@ class BundleCli with CommandTime {
     if (!Directory(workingDirectory).existsSync()) {
       await Directory(workingDirectory).create(recursive: true);
     }
-    final paths = find('*', workingDirectory: workingDirectory, recursive: false, types: [
+    final paths =
+        find('*', workingDirectory: workingDirectory, recursive: false, types: [
       Find.file,
       Find.directory,
       Find.link,
@@ -353,7 +372,11 @@ class BundleCli with CommandTime {
     // TODO: Make async
     final sources = source != null
         ? [join(target, source)]
-        : find('*', workingDirectory: target, types: [Find.directory], recursive: false).toList();
+        : find('*',
+                workingDirectory: target,
+                types: [Find.directory],
+                recursive: false)
+            .toList();
     for (final targetSource in sources) {
       final sourceFile = '${basename(targetSource)}.dart';
       final sourcePath = join(targetSource, sourceFile);
@@ -372,7 +395,8 @@ class BundleCli with CommandTime {
         await Directory(tempSourceFolder).create(recursive: true);
       }
 
-      final exitCode = await runDartJsCompiler(sourcePath, output: tempJsPath, minify: minifyOutput);
+      final exitCode = await runDartJsCompiler(sourcePath,
+          output: tempJsPath, minify: minifyOutput);
       if (exitCode != 0) {
         await Directory(tempSourceFolder).delete(recursive: true);
         continue;
@@ -409,7 +433,8 @@ class BundleCli with CommandTime {
   Future<int> _bundleJsDependencies(String outputFile) async {
     // TODO: make async
     final commonsTempDir = createTempDir();
-    final commonResult = await installJsPackage(commonsPackage, workingDirectory: commonsTempDir);
+    final commonResult = await installJsPackage(commonsPackage,
+        workingDirectory: commonsTempDir);
     if (commonResult.exitCode != 0) {
       stop();
       printerr(yellow(commonResult.stdout));
@@ -418,7 +443,8 @@ class BundleCli with CommandTime {
       return commonResult.exitCode;
     }
 
-    final es6Result = await installJsPackage('es6', workingDirectory: commonsTempDir);
+    final es6Result =
+        await installJsPackage('es6', workingDirectory: commonsTempDir);
     if (es6Result.exitCode != 0) {
       stop();
       printerr(yellow(es6Result.stdout));
@@ -427,8 +453,8 @@ class BundleCli with CommandTime {
       return es6Result.exitCode;
     }
 
-    final browserifyResult =
-        await installJsPackage(kBrowserifyPackage, workingDirectory: commonsTempDir, global: true);
+    final browserifyResult = await installJsPackage(kBrowserifyPackage,
+        workingDirectory: commonsTempDir, global: true);
     if (browserifyResult.exitCode != 0) {
       stop();
       printerr(yellow(browserifyResult.stdout));
@@ -439,7 +465,8 @@ class BundleCli with CommandTime {
     if (!Directory(dirname(outputFile)).existsSync()) {
       await Directory(dirname(outputFile)).create(recursive: true);
     }
-    final bundleResult = await _bundleCommons(commonsTempDir, output: outputFile);
+    final bundleResult =
+        await _bundleCommons(commonsTempDir, output: outputFile);
     if (bundleResult.exitCode != 0) {
       stop();
       printerr(yellow(bundleResult.stdout));
@@ -451,7 +478,8 @@ class BundleCli with CommandTime {
     return 0;
   }
 
-  Future<ProcessResult> _bundleCommons(String tempDir, {required String output}) async {
+  Future<ProcessResult> _bundleCommons(String tempDir,
+      {required String output}) async {
     return await Process.run(
       'browserify',
       [
@@ -490,7 +518,15 @@ class BundleCli with CommandTime {
   }) async {
     final process = await Process.run(
       'dart',
-      ['compile', 'js', script, '-o', output, if (minify) '-m', '--no-source-maps'],
+      [
+        'compile',
+        'js',
+        script,
+        '-o',
+        output,
+        if (minify) '-m',
+        '--no-source-maps'
+      ],
       // Must be true on windows,
       // otherwise this exception is thrown:
       // "The system cannot find the file specified.""
@@ -524,8 +560,8 @@ class BundleCli with CommandTime {
 
     // Read versioning.json file
     final bundlesPath = join(output, 'bundles', subfolder);
-    final Map<String, dynamic> extensionsData =
-        json.decode(await File(join(bundlesPath, 'versioning.json')).readAsString());
+    final Map<String, dynamic> extensionsData = json.decode(
+        await File(join(bundlesPath, 'versioning.json')).readAsString());
     final YamlMap pubspec = loadYaml(await pubspecFile.readAsString());
 
     final List<dynamic> sources = extensionsData['sources'];
@@ -553,13 +589,17 @@ class BundleCli with CommandTime {
     final YamlMap? paperbackSection = pubspec['paperback'];
     if (paperbackSection == null) {
       stop();
-      printerr(yellow('Warning: Could not find paperback section in pubspec.yaml'));
+      printerr(
+          yellow('Warning: Could not find paperback section in pubspec.yaml'));
       printerr(yellow('Skipping homepage generation\n'));
       return 1;
     }
-    final String repositoryName = paperbackSection['repository_name'] ?? 'Repository Name not found';
-    final String description = paperbackSection['description'] ?? 'Description not found';
-    final bool? noAddToPaperbackButton = paperbackSection['no_add_to_paperback_button'];
+    final String repositoryName =
+        paperbackSection['repository_name'] ?? 'Repository Name not found';
+    final String description =
+        paperbackSection['description'] ?? 'Description not found';
+    final bool? noAddToPaperbackButton =
+        paperbackSection['no_add_to_paperback_button'];
     final String? repositoryLogo = paperbackSection['repository_logo'];
     final String? baseURL = paperbackSection['base_url'];
 
@@ -577,7 +617,8 @@ class BundleCli with CommandTime {
         // The repository can force noAddToPaperbackButton to false by adding the field to package.json
         repositoryData['noAddToPaperbackButton'] = true;
       } else {
-        final split = githubRepositoryEnvironmentVariable.toLowerCase().split('/');
+        final split =
+            githubRepositoryEnvironmentVariable.toLowerCase().split('/');
         // The capitalization of folder is important, using subfolder.toLowerCase() make a non working link
         repositoryData['baseURL'] =
             'https://${split[0]}.github.io/${split[1]}${(subfolder == null || subfolder == '') ? '' : '/$subfolder'}';
@@ -600,12 +641,14 @@ class BundleCli with CommandTime {
     // Increment version number if you change the homepage.pug file
     final pugPath = join(cacheDir, 'homepage_v1.pug');
     if (!File(pugPath).existsSync()) {
-      final pugResource = ResourceRegistry.resources['website_generation/homepage.pug']!;
+      final pugResource =
+          ResourceRegistry.resources['website_generation/homepage.pug']!;
       await pugResource.unpackAsync(pugPath);
     }
 
     time(prefix: 'Install pug-cli');
-    final pugResult = await installJsPackage(kPugPackage, workingDirectory: pwd, global: true);
+    final pugResult = await installJsPackage(kPugPackage,
+        workingDirectory: pwd, global: true);
     if (pugResult.exitCode != 0) {
       stop();
       printerr(red('\nError: Could not install pug-cli'));
@@ -664,18 +707,21 @@ class BundleCli with CommandTime {
       printerr(red('Warning: Could not delete options.json - ${e.toString()}'));
     }
 
-    final tempIndex = File(join(bundlesPath, '${basenameWithoutExtension(pugPath)}.html'));
+    final tempIndex =
+        File(join(bundlesPath, '${basenameWithoutExtension(pugPath)}.html'));
     await tempIndex.rename(join(bundlesPath, 'index.html'));
 
     homepageTimer.stop();
-    print((blue('Total Homepage Generation: ${homepageTimer.elapsedMilliseconds}ms')));
+    print((blue(
+        'Total Homepage Generation: ${homepageTimer.elapsedMilliseconds}ms')));
     return 0;
   }
 
   /// The compiled js file will be saved to [pugPath].
   ///
   /// Returns the exit code of the process.
-  Future<ProcessResult> runPugCompile(String optionsFile, {required String pugPath}) async {
+  Future<ProcessResult> runPugCompile(String optionsFile,
+      {required String pugPath}) async {
     final dir = createTempDir();
     final bundlesDir = join(output, 'bundles', subfolder);
     if (!Directory(bundlesDir).existsSync()) {

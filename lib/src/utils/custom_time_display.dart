@@ -42,7 +42,8 @@ class MillisecondTimeDisplay {
         _isStart = false;
       } else {
         Console.moveCursorBack(_lastMsg.length);
-        final msg = '(${(watch!.elapsed.inMilliseconds).toStringAsFixed(place)}ms)';
+        final msg =
+            '(${(watch!.elapsed.inMilliseconds).toStringAsFixed(place)}ms)';
         _lastMsg = msg;
         Console.setBold(true);
         Console.setTextColor(Color.GRAY.id);

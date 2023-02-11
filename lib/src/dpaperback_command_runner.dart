@@ -5,7 +5,8 @@ import 'package:riverpod/riverpod.dart';
 
 const executableName = 'dpaperback';
 const packageName = 'dpaperback_cli';
-const description = 'A commandline tool for bundling and serving Paperback written in Dart.';
+const description =
+    'A commandline tool for bundling and serving Paperback written in Dart.';
 
 class DartPaperbackCommandRunner extends CompletionCommandRunner<int> {
   final ProviderContainer container;

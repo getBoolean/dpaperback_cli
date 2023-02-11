@@ -17,18 +17,21 @@ import 'package:watcher/watcher.dart';
 
 class Server extends Command<int> {
   final ProviderContainer container;
-  Server([ProviderContainer? container]) : container = container ?? ProviderContainer() {
+  Server([ProviderContainer? container])
+      : container = container ?? ProviderContainer() {
     argParser
       ..addSeparator('Flags:')
       ..addFlag('skip-bundle',
-          help: 'Skip bundling the sources when first starting', negatable: false)
+          help: 'Skip bundling the sources when first starting',
+          negatable: false)
       ..addFlag(
         'homepage',
         help: 'When enabled, the homepage file be generated using pug-cli',
         negatable: true,
         defaultsTo: true,
       )
-      ..addFlag('hot-restart', negatable: true, help: 'Rebuild sources on save', defaultsTo: true)
+      ..addFlag('hot-restart',
+          negatable: true, help: 'Rebuild sources on save', defaultsTo: true)
       ..addFlag('hide-ip-address',
           help: 'Hide the ip address when the server starts', negatable: false)
       ..addFlag(
@@ -49,10 +52,17 @@ class Server extends Command<int> {
           help:
               'Number of milliseconds after a hot restart was triggered in which another hot restart cannot be triggered.')
       ..addOption('output',
-          abbr: 'o', help: 'The output directory.', defaultsTo: './', valueHelp: 'folder')
+          abbr: 'o',
+          help: 'The output directory.',
+          defaultsTo: './',
+          valueHelp: 'folder')
       ..addOption('target',
-          abbr: 't', help: 'The directory with sources.', defaultsTo: 'lib', valueHelp: 'folder')
-      ..addOption('source', abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
+          abbr: 't',
+          help: 'The directory with sources.',
+          defaultsTo: 'lib',
+          valueHelp: 'folder')
+      ..addOption('source',
+          abbr: 's', help: 'Bundle a single source.', valueHelp: 'source name')
       ..addOption(
         'paperback-extensions-common',
         abbr: 'c',
@@ -62,7 +72,8 @@ class Server extends Command<int> {
       )
       ..addOption('ip', valueHelp: 'value')
       ..addOption('port', abbr: 'p', defaultsTo: '8080', valueHelp: 'value')
-      ..addOption('host', valueHelp: 'ip-address', help: 'Override the host address')
+      ..addOption('host',
+          valueHelp: 'ip-address', help: 'Override the host address')
       ..addOption(
         'pubspec',
         abbr: 'P',
@@ -93,13 +104,16 @@ class Server extends Command<int> {
     final source = results['source'];
     final pubspecPath = parsePubspecPath(results);
     final enableHotRestart = results['hot-restart'] as bool;
-    final hotRestartThrottleMilliseconds = int.tryParse(results['hot-restart-throttle'] as String);
+    final hotRestartThrottleMilliseconds =
+        int.tryParse(results['hot-restart-throttle'] as String);
     final hideIpAddress = results['hide-ip-address'] as bool;
     final subfolder = results['subfolder'] as String?;
     final shouldGenerateHomepage = results['homepage'] as bool;
     final minifiedOutput = results['minified-output'] as bool;
-    if (hotRestartThrottleMilliseconds == null || hotRestartThrottleMilliseconds < 1000) {
-      printerr(red('Invalid hot restart throttle value. Must be 1000 or greater'));
+    if (hotRestartThrottleMilliseconds == null ||
+        hotRestartThrottleMilliseconds < 1000) {
+      printerr(
+          red('Invalid hot restart throttle value. Must be 1000 or greater'));
       return 2;
     }
 
@@ -131,7 +145,7 @@ class Server extends Command<int> {
       pubspecPath: pubspecPath,
       subfolder: subfolder,
       shouldGenerateHomepage: shouldGenerateHomepage,
-        minifyOutput: minifiedOutput,
+      minifyOutput: minifiedOutput,
     ).run();
 
     return successCode;
@@ -221,7 +235,8 @@ class ServerCli with CommandTime {
     );
     final ip = await ipv4Address();
     try {
-      final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
+      final HttpServer server =
+          await shelf_io.serve(handler, host ?? ip.address, port);
       printServerStarted(server);
 
       stdout.write(prefixTime(' :'));
@@ -261,10 +276,12 @@ class ServerCli with CommandTime {
 
       await subscription.asFuture();
     } on SocketException catch (e) {
-      printerr(red('Error starting server: ${e.osError == null ? e.message : e.osError!.message}'));
+      printerr(red(
+          'Error starting server: ${e.osError == null ? e.message : e.osError!.message}'));
       return 1;
     } on FileSystemException catch (e) {
-      printerr(red('Error starting server: ${e.osError == null ? e.message : e.osError!.message}'));
+      printerr(red(
+          'Error starting server: ${e.osError == null ? e.message : e.osError!.message}'));
       return 1;
     } on FormatException catch (e) {
       printerr(red('Error starting server: ${e.message}\n${e.toString()}'));
@@ -293,7 +310,8 @@ class ServerCli with CommandTime {
       minifyOutput: minifyOutput,
     ).run();
     if (exitCode != 0) {
-      printerr(prefixTime() + red('Failed to build sources, stopping server...'));
+      printerr(
+          prefixTime() + red('Failed to build sources, stopping server...'));
       exit(2);
     }
     printServerStarted(server);
