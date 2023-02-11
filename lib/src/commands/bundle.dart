@@ -549,9 +549,16 @@ class BundleCli with CommandTime {
       }
     */
     final Map<String, dynamic> repositoryData = {};
-    final YamlMap paperbackSection = pubspec['paperback'];
-    final String repositoryName = paperbackSection['repository_name'];
-    final String description = paperbackSection['description'];
+    // TODO: Add check for required paperback fields
+    final YamlMap? paperbackSection = pubspec['paperback'];
+    if (paperbackSection == null) {
+      stop();
+      printerr(yellow('Warning: Could not find paperback section in pubspec.yaml'));
+      printerr(yellow('Skipping homepage generation\n'));
+      return 1;
+    }
+    final String repositoryName = paperbackSection['repository_name'] ?? 'Repository Name not found';
+    final String description = paperbackSection['description'] ?? 'Description not found';
     final bool? noAddToPaperbackButton = paperbackSection['no_add_to_paperback_button'];
     final String? repositoryLogo = paperbackSection['repository_logo'];
     final String? baseURL = paperbackSection['base_url'];
