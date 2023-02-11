@@ -219,7 +219,7 @@ class ServerCli with CommandTime {
         listDirectories: false,
       ),
     );
-    final ip = await intranetIpv4();
+    final ip = await ipv4Address();
     try {
       final HttpServer server = await shelf_io.serve(handler, host ?? ip.address, port);
       printServerStarted(server);
@@ -317,4 +317,16 @@ String prefixTime([String separator = '']) {
   final time =
       '[${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}:${now.millisecond.toString().padLeft(4, '0')}]$separator ';
   return grey(time);
+}
+
+Future<InternetAddress> ipv4Address() async {
+  final networks = await NetworkInterface.list(type: InternetAddressType.IPv4);
+  print('Networks: ${networks.length}');
+
+  return networks
+      .where((network) => !network.name.contains('VirtualBox'))
+      .where((network) => !network.name.contains('VM'))
+      .first
+      .addresses
+      .first;
 }
