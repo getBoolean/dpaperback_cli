@@ -11,3 +11,6 @@ pubspec_overrides.yaml
 bundles
 temp_build
 .pb_cache
+
+# IDEs
+.vscode/launch.json
