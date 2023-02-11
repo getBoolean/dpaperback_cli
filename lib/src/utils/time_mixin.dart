@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:dcli/dcli.dart';
 import 'package:dpaperback_cli/src/utils/custom_time_display.dart';
 
-const kDefaultPaperbackExtensionsCommon = 'paperback-extensions-common@^5.0.0-alpha.7';
+const kDefaultPaperbackExtensionsCommon =
+    'paperback-extensions-common@^5.0.0-alpha.7';
 
 mixin CommandTime {
   MillisecondTimeDisplay? _timeDisplay;
@@ -34,6 +35,7 @@ mixin CommandTime {
       final time = _stopwatch?.elapsedMilliseconds ?? 0;
       _stopwatch = null;
       _timeDisplay = null;
+      print('${time}ms');
       return time;
     }
     _timeDisplay?.stop();
